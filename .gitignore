@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -39,3 +43,50 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Database
+*.sql
+!schema.sql
+!*-schema.sql
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+
+# Images (excluded to keep repository size manageable)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.ico
+# Keep SVG icons but exclude large images
+# *.svg
+public/img/
+public/*.jpg
+public/*.jpeg
+public/*.png
+public/*.gif
+public/*.webp
