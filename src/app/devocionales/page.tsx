@@ -139,12 +139,16 @@ export default async function DevocionalesPage() {
               Únete a nuestra comunidad y recibe reflexiones diarias para fortalecer tu caminar con Dios.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
-                Registrarse
-              </Button>
-              <Button className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
-                Iniciar Sesión
-              </Button>
+              <Link href="/registro">
+                <Button className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
+                  Registrarse
+                </Button>
+              </Link>
+              <Link href="/iniciar-sesion">
+                <Button className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
+                  Iniciar Sesión
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

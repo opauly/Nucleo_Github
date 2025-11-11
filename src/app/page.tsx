@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Map } from "@/components/ui/map";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function Home() {
   // Fallback teams data in case Supabase is not available
@@ -96,6 +97,8 @@ export default function Home() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [devotionals, setDevotionals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [eventsExpanded, setEventsExpanded] = useState(false);
+  const [announcementsExpanded, setAnnouncementsExpanded] = useState(false);
 
   useEffect(() => {
     console.log("🔍 Home component mounted");
@@ -460,44 +463,65 @@ export default function Home() {
 
 
 
-      {/* Events & Announcements Section - 2 Column Layout */}
+      {/* Events & Announcements Section - Accordion Layout */}
       <section className="py-20 lg:py-32 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
             {/* Left Column - Content */}
             <div className="text-center lg:text-left">
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-slate-900 mb-8 tracking-tight">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-slate-900 mb-4 tracking-tight">
                 Descubre Núcleo
               </h2>
-              <p className="text-xl md:text-2xl text-slate-600 mb-8 leading-relaxed font-light">
+              <p className="text-lg md:text-xl text-slate-600 mb-6 leading-relaxed font-light">
                 Explora nuestros eventos y anuncios para mantenerte conectado con nuestra comunidad de fe.
               </p>
               
-              <div className="space-y-8 mb-8">
-                {/* Featured Events */}
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <h4 className="font-semibold text-slate-900 text-lg mb-3">Eventos Destacados</h4>
-                  {events.length > 0 ? (
-                    <div className="space-y-3">
-                      {events.slice(0, 3).map((event, index) => (
-                        <div key={event.id || index} className="bg-slate-50 rounded-lg p-3">
-                          <h5 className="font-medium text-slate-900 text-sm mb-1 line-clamp-1">
-                            {event.title}
-                          </h5>
-                          <p className="text-slate-600 text-xs mb-1 line-clamp-2">
-                            {event.description ? event.description.replace(/<[^>]*>/g, '') : 'Evento de la comunidad'}
-                          </p>
-                          <p className="text-slate-500 text-xs">
-                            {new Date(event.start_date).toLocaleDateString('es-ES', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                          {event.event_teams && event.event_teams.length > 0 && (
-                            <div className="mt-2">
-                              <div className="flex flex-wrap gap-1">
+              <div className="space-y-3 mb-6">
+                {/* Featured Events - Accordion */}
+                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                  <button
+                    onClick={() => setEventsExpanded(!eventsExpanded)}
+                    className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-8 bg-blue-500 rounded-full"></div>
+                      <h4 className="font-semibold text-slate-900 text-base">
+                        Eventos Destacados
+                        {events.length > 0 && (
+                          <span className="ml-2 text-sm font-normal text-slate-500">
+                            ({events.length})
+                          </span>
+                        )}
+                      </h4>
+                    </div>
+                    {eventsExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-slate-600" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-slate-600" />
+                    )}
+                  </button>
+                  
+                  {eventsExpanded && (
+                    <div className="p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                      {events.length > 0 ? (
+                        events.slice(0, 3).map((event, index) => (
+                          <div key={event.id || index} className="bg-slate-50 rounded-lg p-3 hover:bg-slate-100 transition-colors">
+                            <h5 className="font-medium text-slate-900 text-sm mb-1 line-clamp-1">
+                              {event.title}
+                            </h5>
+                            <p className="text-slate-600 text-xs mb-1 line-clamp-2">
+                              {event.description ? event.description.replace(/<[^>]*>/g, '') : 'Evento de la comunidad'}
+                            </p>
+                            <p className="text-slate-500 text-xs mb-2">
+                              {new Date(event.start_date).toLocaleDateString('es-ES', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </p>
+                            {event.event_teams && event.event_teams.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-2">
                                 {event.event_teams.map((eventTeam: any) => (
                                   <Badge 
                                     key={eventTeam.teams.id} 
@@ -508,48 +532,89 @@ export default function Home() {
                                   </Badge>
                                 ))}
                               </div>
-                            </div>
-                          )}
+                            )}
+                            <Link href={`/eventos/${event.id}`}>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="w-full text-xs border-slate-300 text-slate-700 hover:bg-slate-100"
+                              >
+                                Conocer Más
+                              </Button>
+                            </Link>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <p className="text-slate-600 text-sm">
+                            No hay eventos destacados en este momento.
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-slate-50 rounded-lg p-3">
-                      <p className="text-slate-600 text-sm">
-                        No hay eventos destacados en este momento.
-                      </p>
+                      )}
                     </div>
                   )}
                 </div>
                 
-                {/* Featured Announcements */}
-                <div className="border-l-4 border-green-500 pl-4">
-                  <h4 className="font-semibold text-slate-900 text-lg mb-3">Anuncios Importantes</h4>
-                  {announcements.length > 0 ? (
-                    <div className="space-y-3">
-                      {announcements.slice(0, 3).map((announcement, index) => (
-                        <div key={announcement.id || index} className="bg-slate-50 rounded-lg p-3">
-                          <h5 className="font-medium text-slate-900 text-sm mb-1 line-clamp-1">
-                            {announcement.title}
-                          </h5>
-                          <p className="text-slate-600 text-xs mb-1 line-clamp-2">
-                            {announcement.summary || 'Anuncio importante de la comunidad'}
-                          </p>
-                          <p className="text-slate-500 text-xs">
-                            {new Date(announcement.published_at).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
+                {/* Featured Announcements - Accordion */}
+                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                  <button
+                    onClick={() => setAnnouncementsExpanded(!announcementsExpanded)}
+                    className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-8 bg-green-500 rounded-full"></div>
+                      <h4 className="font-semibold text-slate-900 text-base">
+                        Anuncios Importantes
+                        {announcements.length > 0 && (
+                          <span className="ml-2 text-sm font-normal text-slate-500">
+                            ({announcements.length})
+                          </span>
+                        )}
+                      </h4>
+                    </div>
+                    {announcementsExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-slate-600" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-slate-600" />
+                    )}
+                  </button>
+                  
+                  {announcementsExpanded && (
+                    <div className="p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                      {announcements.length > 0 ? (
+                        announcements.slice(0, 3).map((announcement, index) => (
+                          <div key={announcement.id || index} className="bg-slate-50 rounded-lg p-3 hover:bg-slate-100 transition-colors">
+                            <h5 className="font-medium text-slate-900 text-sm mb-1 line-clamp-1">
+                              {announcement.title}
+                            </h5>
+                            <p className="text-slate-600 text-xs mb-1 line-clamp-2">
+                              {announcement.summary || 'Anuncio importante de la comunidad'}
+                            </p>
+                            <p className="text-slate-500 text-xs mb-2">
+                              {new Date(announcement.published_at).toLocaleDateString('es-ES', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </p>
+                            <Link href={`/anuncios/${announcement.id}`}>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="w-full text-xs border-slate-300 text-slate-700 hover:bg-slate-100"
+                              >
+                                Conocer Más
+                              </Button>
+                            </Link>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <p className="text-slate-600 text-sm">
+                            No hay anuncios destacados en este momento.
                           </p>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-slate-50 rounded-lg p-3">
-                      <p className="text-slate-600 text-sm">
-                        No hay anuncios destacados en este momento.
-                      </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -619,9 +684,14 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <p className="text-slate-600 leading-relaxed line-clamp-3">
+                    <p className="text-slate-600 leading-relaxed line-clamp-3 mb-4">
                       {devotional.summary || 'Reflexión espiritual para fortalecer tu fe y caminar con Dios.'}
                     </p>
+                    <Link href={`/devocionales/${devotional.id}`}>
+                      <Button variant="outline" className="w-full border-slate-300 text-slate-700 hover:bg-slate-50">
+                        Leer Más
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               ))
@@ -643,9 +713,14 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <p className="text-slate-600 leading-relaxed">
+                    <p className="text-slate-600 leading-relaxed mb-4">
                       En medio de las tormentas de la vida, Dios nos ofrece su paz que sobrepasa todo entendimiento.
                     </p>
+                    <Link href="/devocionales">
+                      <Button variant="outline" className="w-full border-slate-300 text-slate-700 hover:bg-slate-50">
+                        Leer Más
+                      </Button>
+                    </Link>
                   </div>
                 </div>
 
@@ -664,9 +739,14 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <p className="text-slate-600 leading-relaxed">
+                    <p className="text-slate-600 leading-relaxed mb-4">
                       Cuando enfrentamos desafíos, podemos confiar en que Dios tiene el control.
                     </p>
+                    <Link href="/devocionales">
+                      <Button variant="outline" className="w-full border-slate-300 text-slate-700 hover:bg-slate-50">
+                        Leer Más
+                      </Button>
+                    </Link>
                   </div>
                 </div>
 
@@ -685,9 +765,14 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <p className="text-slate-600 leading-relaxed">
+                    <p className="text-slate-600 leading-relaxed mb-4">
                       El amor de Cristo es incondicional y transformador. Nos acepta tal como somos.
                     </p>
+                    <Link href="/devocionales">
+                      <Button variant="outline" className="w-full border-slate-300 text-slate-700 hover:bg-slate-50">
+                        Leer Más
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </>
@@ -695,11 +780,11 @@ export default function Home() {
           </div>
 
           <div className="text-center mt-12">
-            <a href="/devocionales">
+            <Link href="/devocionales">
               <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50 px-8 py-3">
                 Ver Todos los Devocionales
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </section>

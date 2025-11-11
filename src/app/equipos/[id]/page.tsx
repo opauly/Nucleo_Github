@@ -35,7 +35,7 @@ interface TeamMember {
     apellido2: string | null
     email: string
     role: string
-  }
+  } | null
 }
 
 interface Team {
@@ -166,7 +166,10 @@ export default async function TeamDetailPage({ params }: { params: { id: string 
     }
   }
 
-  const approvedMembers = team.team_members.filter(member => member.status === 'approved')
+  // Filter out members with null profiles and only approved members
+  const approvedMembers = team.team_members.filter(member => 
+    member.status === 'approved' && member.profiles !== null
+  )
   const leaders = approvedMembers.filter(member => member.team_leader)
   const regularMembers = approvedMembers.filter(member => !member.team_leader)
 
@@ -321,9 +324,9 @@ export default async function TeamDetailPage({ params }: { params: { id: string 
                                     </div>
                                     <div>
                                       <p className="font-medium text-slate-900">
-                                        {member.profiles.nombre} {member.profiles.apellido1} {member.profiles.apellido2 || ''}
+                                        {member.profiles?.nombre || 'Usuario'} {member.profiles?.apellido1 || ''} {member.profiles?.apellido2 || ''}
                                       </p>
-                                      <p className="text-sm text-slate-600">{member.profiles.email}</p>
+                                      <p className="text-sm text-slate-600">{member.profiles?.email || 'Email no disponible'}</p>
                                     </div>
                                   </div>
                                   <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
@@ -352,9 +355,9 @@ export default async function TeamDetailPage({ params }: { params: { id: string 
                                     </div>
                                     <div>
                                       <p className="font-medium text-slate-900">
-                                        {member.profiles.nombre} {member.profiles.apellido1} {member.profiles.apellido2 || ''}
+                                        {member.profiles?.nombre || 'Usuario'} {member.profiles?.apellido1 || ''} {member.profiles?.apellido2 || ''}
                                       </p>
-                                      <p className="text-sm text-slate-600">{member.profiles.email}</p>
+                                      <p className="text-sm text-slate-600">{member.profiles?.email || 'Email no disponible'}</p>
                                     </div>
                                   </div>
                                   <Badge className="bg-blue-100 text-blue-800 border-blue-200">
