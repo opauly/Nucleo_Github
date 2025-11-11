@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!['approve', 'reject'].includes(action)) {
+    if (!['approve', 'reject', 'pending'].includes(action)) {
       return NextResponse.json(
-        { error: 'Invalid action. Must be "approve" or "reject"' },
+        { error: 'Invalid action. Must be "approve", "reject", or "pending"' },
         { status: 400 }
       )
     }
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Update the membership status
-    const newStatus = action === 'approve' ? 'approved' : 'rejected'
+    const newStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending'
     
     const { data: updatedMembership, error: updateError } = await supabase
       .from('team_members')
@@ -138,24 +138,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Send approval/rejection email
-    try {
-      const userName = `${membership.profiles.nombre} ${membership.profiles.apellido1}${membership.profiles.apellido2 ? ` ${membership.profiles.apellido2}` : ''}`
+    // 5. Send approval/rejection email (only for approve/reject, not pending)
+    if (action !== 'pending') {
+      try {
+        const userName = `${membership.profiles.nombre} ${membership.profiles.apellido1}${membership.profiles.apellido2 ? ` ${membership.profiles.apellido2}` : ''}`
 
-      await EmailService.sendTeamApprovalNotification(
-        membership.profiles.email,
-        userName,
-        membership.teams.name,
-        action === 'approve'
-      )
-    } catch (emailError) {
-      console.error('Failed to send approval email:', emailError)
-      // Don't fail the approval if email fails
+        await EmailService.sendTeamApprovalNotification(
+          membership.profiles.email,
+          userName,
+          membership.teams.name,
+          action === 'approve'
+        )
+      } catch (emailError) {
+        console.error('Failed to send approval email:', emailError)
+        // Don't fail the approval if email fails
+      }
+    }
+
+    const actionMessages: Record<string, string> = {
+      'approve': 'approved',
+      'reject': 'rejected',
+      'pending': 'marked as pending'
     }
 
     return NextResponse.json({
       success: true,
-      message: `Membership ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
+      message: `Membership ${actionMessages[action] || 'updated'} successfully`,
       membership: updatedMembership
     })
 

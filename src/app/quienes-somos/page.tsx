@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Heart, BookOpen, Target } from 'lucide-react'
+import Link from 'next/link'
 
 export const metadata = {
   title: 'Quiénes Somos - Núcleo',
@@ -46,9 +47,11 @@ export default function QuienesSomosPage() {
                 <p className="text-lg text-slate-600 leading-relaxed mb-8">
                   Creemos que cada persona tiene un propósito único en el plan de Dios, y nuestro deseo es ayudarte a descubrir y desarrollar ese propósito en tu vida.
                 </p>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg">
-                  Únete a nosotros
-                </Button>
+                <Link href="/registro">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg">
+                    Únete a nosotros
+                  </Button>
+                </Link>
               </div>
               <div className="relative">
                 <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-lg">
@@ -162,7 +165,7 @@ export default function QuienesSomosPage() {
       </section>
 
       {/* Call to Action */}
-      <section className="bg-slate-900 text-white py-20 lg:py-32">
+      <section className="bg-black text-white py-20 lg:py-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-6 tracking-tight">
@@ -172,12 +175,11 @@ export default function QuienesSomosPage() {
               Únete a nosotros en este viaje de fe y descubre cómo puedes ser parte de lo que Dios está haciendo en Núcleo.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg">
-                Visítanos este domingo
-              </Button>
-              <Button variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900 px-8 py-3 text-lg">
-                Contáctanos
-              </Button>
+              <Link href="/contacto">
+                <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
+                  Contáctanos
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

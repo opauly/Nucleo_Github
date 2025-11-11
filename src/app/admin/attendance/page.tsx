@@ -24,6 +24,8 @@ export default function AttendancePage() {
   const [adults, setAdults] = useState(0)
   const [teens, setTeens] = useState(0)
   const [kids, setKids] = useState(0)
+  const [babies, setBabies] = useState(0)
+  const [newPeople, setNewPeople] = useState(0)
   const [attendanceDate, setAttendanceDate] = useState(() => {
     // Default to today's date in YYYY-MM-DD format
     const today = new Date()
@@ -111,6 +113,8 @@ export default function AttendancePage() {
           adults_count: adults,
           teens_count: teens,
           kids_count: kids,
+          babies_count: babies,
+          new_people_count: newPeople,
           notes: notes.trim() || null
         })
       })
@@ -123,6 +127,8 @@ export default function AttendancePage() {
         setAdults(0)
         setTeens(0)
         setKids(0)
+        setBabies(0)
+        setNewPeople(0)
         setNotes('')
         // Refresh last record
         fetchLastRecord()
@@ -141,7 +147,8 @@ export default function AttendancePage() {
     }
   }
 
-  const total = adults + teens + kids
+  // Total excludes new people (Personas Nuevas)
+  const total = adults + teens + kids + babies
 
   if (authLoading || checkingRole) {
     return (
@@ -235,9 +242,13 @@ export default function AttendancePage() {
                 adults={adults}
                 teens={teens}
                 kids={kids}
+                babies={babies}
+                newPeople={newPeople}
                 onAdultsChange={setAdults}
                 onTeensChange={setTeens}
                 onKidsChange={setKids}
+                onBabiesChange={setBabies}
+                onNewPeopleChange={setNewPeople}
               />
               <div className="mt-6 p-4 bg-slate-50 rounded-lg">
                 <div className="flex items-center justify-between">

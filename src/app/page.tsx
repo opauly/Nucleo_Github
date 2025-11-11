@@ -256,19 +256,25 @@ export default function Home() {
         
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-5xl mx-auto">
-            <h1 className="text-5xl md:text-6xl lg:text-6xl font-display font-bold text-white mb-6 tracking-tight drop-shadow-lg">
-              Núcleo
-            </h1>
-            <p className="text-xl md:text-2xl text-slate-200 leading-relaxed font-light drop-shadow-md">
-              Hacemos vida juntos.
-            </p>
+            <div className="mb-12 md:mb-16">
+              <h1 className="text-5xl md:text-6xl lg:text-6xl font-display font-bold text-white mb-3 md:mb-4 tracking-tight drop-shadow-lg">
+                Núcleo
+              </h1>
+              <p className="text-xl md:text-2xl text-slate-200 leading-relaxed font-light drop-shadow-md">
+                Hacemos vida juntos.
+              </p>
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
-                Quiénes Somos
-              </Button>
-              <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
-                Eventos
-              </Button>
+              <Link href="/quienes-somos">
+                <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
+                  Quiénes Somos
+                </Button>
+              </Link>
+              <Link href="/eventos">
+                <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
+                  Eventos
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -287,9 +293,11 @@ export default function Home() {
                 En Núcleo, creemos en construir una comunidad de fe vibrante donde todos puedan crecer espiritualmente,
                 encontrar propósito y experimentar el amor de Dios.
               </p>
-              <Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 text-lg font-medium">
-                Conoce Más
-              </Button>
+              <Link href="/quienes-somos">
+                <Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 text-lg font-medium">
+                  Conoce Más
+                </Button>
+              </Link>
             </div>
 
             {/* Right Column - Stock Image */}
@@ -358,12 +366,16 @@ export default function Home() {
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                    <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-sm font-medium">
-                      Conocer Más
-                    </Button>
-                    <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 text-sm font-medium">
-                      Unirse al Equipo
-                    </Button>
+                    <Link href={`/equipos/${teams[currentTeamIndex].id}`}>
+                      <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-sm font-medium">
+                        Conocer Más
+                      </Button>
+                    </Link>
+                    <Link href={`/equipos/${teams[currentTeamIndex].id}`}>
+                      <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 text-sm font-medium">
+                        Unirse al Equipo
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -705,12 +717,16 @@ export default function Home() {
             Regístrate para recibir actualizaciones sobre eventos, devocionales y más
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
-              Registrarse
-            </Button>
-            <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
-              Iniciar Sesión
-            </Button>
+            <Link href="/registro">
+              <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
+                Registrarse
+              </Button>
+            </Link>
+            <Link href="/iniciar-sesion">
+              <Button size="lg" className="bg-white hover:bg-slate-100 text-slate-900 px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl">
+                Iniciar Sesión
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

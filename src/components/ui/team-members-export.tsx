@@ -35,6 +35,7 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null)
+  const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -142,6 +143,51 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
       toast.error('Error al exportar a PDF')
     } finally {
       setExporting(null)
+    }
+  }
+
+  const handleStatusChange = async (profileId: string, action: 'approve' | 'reject' | 'pending') => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para cambiar el estado')
+      return
+    }
+
+    setProcessingId(profileId)
+    try {
+      const response = await fetch('/api/teams/approve-membership', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.id}`,
+          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+        },
+        body: JSON.stringify({
+          teamId: teamId,
+          profileId: profileId,
+          action: action,
+          adminUserId: user.id
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        const actionMessages: Record<string, string> = {
+          'approve': 'aprobado',
+          'reject': 'rechazado',
+          'pending': 'marcado como pendiente'
+        }
+        toast.success(result.message || `Miembro ${actionMessages[action] || 'actualizado'} exitosamente`)
+        // Refresh the members list
+        fetchMembers()
+      } else {
+        toast.error(result.error || 'Error al cambiar el estado')
+      }
+    } catch (error) {
+      console.error('Error changing status:', error)
+      toast.error('Error de conexión')
+    } finally {
+      setProcessingId(null)
     }
   }
 
@@ -290,6 +336,62 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
                       </div>
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         {getStatusBadge(member.status)}
+                        <div className="flex gap-2 mt-1 flex-wrap justify-end">
+                          {member.status !== 'approved' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                              onClick={() => handleStatusChange(member.profile_id, 'approve')}
+                              disabled={processingId === member.profile_id}
+                            >
+                              {processingId === member.profile_id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Check className="w-3 h-3 mr-1" />
+                                  Aprobar
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          {member.status !== 'rejected' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                              onClick={() => handleStatusChange(member.profile_id, 'reject')}
+                              disabled={processingId === member.profile_id}
+                            >
+                              {processingId === member.profile_id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <X className="w-3 h-3 mr-1" />
+                                  Rechazar
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          {member.status !== 'pending' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+                              onClick={() => handleStatusChange(member.profile_id, 'pending')}
+                              disabled={processingId === member.profile_id}
+                            >
+                              {processingId === member.profile_id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Pendiente
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

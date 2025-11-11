@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AttendanceChart } from '@/components/admin/attendance-chart'
 import { useAuth } from '@/lib/auth/auth-context'
-import { Users, TrendingUp, TrendingDown, Calendar, ArrowRight } from 'lucide-react'
+import { Users, TrendingUp, TrendingDown, Calendar, ArrowRight, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -32,6 +32,7 @@ export function AttendanceDashboard() {
   const [stats, setStats] = useState<AttendanceStats | null>(null)
   const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [dateRange, setDateRange] = useState<'month' | '3months' | '6months' | 'year' | 'all'>('3months')
 
   useEffect(() => {
     if (user) {
@@ -101,6 +102,61 @@ export function AttendanceDashboard() {
     return null
   }
 
+  // Calculate average based on filtered date range
+  const calculateFilteredAverage = () => {
+    if (!records || records.length === 0) return 0
+
+    const now = new Date()
+    let cutoffDate = new Date()
+
+    switch (dateRange) {
+      case 'month':
+        cutoffDate.setMonth(now.getMonth() - 1)
+        break
+      case '3months':
+        cutoffDate.setMonth(now.getMonth() - 3)
+        break
+      case '6months':
+        cutoffDate.setMonth(now.getMonth() - 6)
+        break
+      case 'year':
+        cutoffDate.setFullYear(now.getFullYear() - 1)
+        break
+      case 'all':
+        const sum = records.reduce((acc, record) => acc + (record.total_count || 0), 0)
+        return records.length > 0 ? Math.round(sum / records.length) : 0
+    }
+
+    const filtered = records.filter(record => {
+      const recordDate = new Date(record.attendance_date)
+      return recordDate >= cutoffDate
+    })
+
+    if (filtered.length === 0) return 0
+
+    const sum = filtered.reduce((acc, record) => acc + (record.total_count || 0), 0)
+    return Math.round(sum / filtered.length)
+  }
+
+  const getDateRangeLabel = () => {
+    switch (dateRange) {
+      case 'month':
+        return 'Último mes'
+      case '3months':
+        return 'Últimos 3 meses'
+      case '6months':
+        return 'Últimos 6 meses'
+      case 'year':
+        return 'Último año'
+      case 'all':
+        return 'Todo el período'
+      default:
+        return 'Últimos 3 meses'
+    }
+  }
+
+  const filteredAverage = calculateFilteredAverage()
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -131,8 +187,8 @@ export function AttendanceDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Promedio (4 semanas)</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.averageAttendance}</p>
+                <p className="text-sm font-medium text-slate-600">Promedio ({getDateRangeLabel()})</p>
+                <p className="text-2xl font-bold text-slate-900">{filteredAverage}</p>
                 <p className="text-xs text-slate-500 mt-1">personas</p>
               </div>
               <Users className="w-8 h-8 text-green-600" />
@@ -188,7 +244,10 @@ export function AttendanceDashboard() {
       </div>
 
       {/* Chart */}
-      <AttendanceChart records={records} />
+      <AttendanceChart 
+        records={records} 
+        onDateRangeChange={setDateRange}
+      />
 
       {/* Quick Actions */}
       <Card>
@@ -196,12 +255,20 @@ export function AttendanceDashboard() {
           <CardTitle>Acciones Rápidas</CardTitle>
         </CardHeader>
         <CardContent>
-          <Button asChild>
-            <Link href="/admin/attendance">
-              Registrar Nueva Asistencia
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button asChild>
+              <Link href="/admin/attendance">
+                Registrar Nueva Asistencia
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/admin/attendance/import">
+                <Upload className="w-4 h-4 mr-2" />
+                Importar Histórico
+              </Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

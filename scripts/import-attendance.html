@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar Asistencia Histórica</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        .status.loading {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+        .summary {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+        .summary-item {
+            margin: 5px 0;
+        }
+        .errors {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fef2f2;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error-item {
+            color: #991b1b;
+            font-size: 14px;
+            margin: 3px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Importar Asistencia Histórica 2025</h1>
+        <p>Este proceso importará/actualizará todos los registros de asistencia del archivo CSV para el año 2025.</p>
+        
+        <button id="importBtn" onclick="importData()">Importar Datos</button>
+        <button onclick="location.reload()">Recargar</button>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        async function importData() {
+            const btn = document.getElementById('importBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            status.className = 'status loading';
+            status.style.display = 'block';
+            status.innerHTML = 'Importando datos... Por favor espera.';
+            
+            try {
+                // Get user token from localStorage (adjust based on your auth implementation)
+                const token = localStorage.getItem('supabase.auth.token') || prompt('Por favor ingresa tu token de autenticación:');
+                
+                if (!token) {
+                    throw new Error('Token requerido');
+                }
+                
+                const response = await fetch('/api/admin/attendance/import', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    status.className = 'status success';
+                    let html = '<strong>✓ Importación completada exitosamente</strong>';
+                    
+                    if (result.summary) {
+                        html += '<div class="summary">';
+                        html += `<div class="summary-item"><strong>Total:</strong> ${result.summary.total} registros</div>`;
+                        html += `<div class="summary-item"><strong>Actualizados:</strong> ${result.summary.updated}</div>`;
+                        html += `<div class="summary-item"><strong>Insertados:</strong> ${result.summary.inserted}</div>`;
+                        html += `<div class="summary-item"><strong>Errores:</strong> ${result.summary.errors}</div>`;
+                        html += '</div>';
+                    }
+                    
+                    if (result.errors && result.errors.length > 0) {
+                        html += '<div class="errors">';
+                        html += '<strong>Errores encontrados:</strong>';
+                        result.errors.forEach(err => {
+                            html += `<div class="error-item">${err}</div>`;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    status.innerHTML = html;
+                } else {
+                    status.className = 'status error';
+                    status.innerHTML = `<strong>Error:</strong> ${result.error || 'Error desconocido'}`;
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
+

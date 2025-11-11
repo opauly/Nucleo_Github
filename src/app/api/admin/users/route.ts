@@ -133,10 +133,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user role
-    const updateData: any = { role }
-    if (superAdmin !== undefined) {
-      updateData.super_admin = superAdmin
+    const updateData: any = { 
+      role,
+      super_admin: superAdmin !== undefined ? superAdmin : false
     }
+
+    console.log('Updating user role:', { targetUserId, role, superAdmin, updateData })
 
     const { data: updatedUser, error } = await supabase
       .from('profiles')
@@ -148,10 +150,12 @@ export async function PUT(request: NextRequest) {
     if (error) {
       console.error('Error updating user role:', error)
       return NextResponse.json(
-        { error: 'Error updating user role' },
+        { error: 'Error updating user role', details: error.message },
         { status: 500 }
       )
     }
+
+    console.log('User role updated successfully:', updatedUser)
 
     return NextResponse.json({
       success: true,

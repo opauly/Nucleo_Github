@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    const { attendance_date, adults_count, teens_count, kids_count, notes } = await request.json()
+    const { attendance_date, adults_count, teens_count, kids_count, babies_count, new_people_count, notes } = await request.json()
 
     // Get the requesting user's ID from the Authorization header
     const authHeader = request.headers.get('authorization')
@@ -58,8 +58,10 @@ export async function POST(request: NextRequest) {
     const adults = parseInt(adults_count) || 0
     const teens = parseInt(teens_count) || 0
     const kids = parseInt(kids_count) || 0
+    const babies = parseInt(babies_count) || 0
+    const newPeople = parseInt(new_people_count) || 0
 
-    if (adults < 0 || teens < 0 || kids < 0) {
+    if (adults < 0 || teens < 0 || kids < 0 || babies < 0 || newPeople < 0) {
       return NextResponse.json(
         { error: 'Counts must be non-negative integers' },
         { status: 400 }
@@ -88,6 +90,8 @@ export async function POST(request: NextRequest) {
         adults_count: adults,
         teens_count: teens,
         kids_count: kids,
+        babies_count: babies,
+        new_people_count: newPeople,
         recorded_by: userId,
         notes: notes || null
       })
@@ -175,6 +179,8 @@ export async function GET(request: NextRequest) {
         adults_count,
         teens_count,
         kids_count,
+        babies_count,
+        new_people_count,
         total_count,
         recorded_by,
         notes,

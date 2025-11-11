@@ -25,7 +25,7 @@ export async function PUT(
     })
 
     const { id } = await params
-    const { attendance_date, adults_count, teens_count, kids_count, notes } = await request.json()
+    const { attendance_date, adults_count, teens_count, kids_count, babies_count, new_people_count, notes } = await request.json()
 
     // Get the requesting user's ID from the Authorization header
     const authHeader = request.headers.get('authorization')
@@ -81,12 +81,34 @@ export async function PUT(
       }
     }
 
+    if (babies_count !== undefined) {
+      const babies = parseInt(babies_count)
+      if (isNaN(babies) || babies < 0) {
+        return NextResponse.json(
+          { error: 'babies_count must be a non-negative integer' },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (new_people_count !== undefined) {
+      const newPeople = parseInt(new_people_count)
+      if (isNaN(newPeople) || newPeople < 0) {
+        return NextResponse.json(
+          { error: 'new_people_count must be a non-negative integer' },
+          { status: 400 }
+        )
+      }
+    }
+
     // Build update object
     const updateData: any = {}
     if (attendance_date) updateData.attendance_date = attendance_date
     if (adults_count !== undefined) updateData.adults_count = parseInt(adults_count)
     if (teens_count !== undefined) updateData.teens_count = parseInt(teens_count)
     if (kids_count !== undefined) updateData.kids_count = parseInt(kids_count)
+    if (babies_count !== undefined) updateData.babies_count = parseInt(babies_count)
+    if (new_people_count !== undefined) updateData.new_people_count = parseInt(new_people_count)
     if (notes !== undefined) updateData.notes = notes || null
 
     // Update record

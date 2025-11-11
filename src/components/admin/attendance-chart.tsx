@@ -14,15 +14,25 @@ interface AttendanceRecord {
   adults_count: number
   teens_count: number
   kids_count: number
+  babies_count: number
+  new_people_count: number
   total_count: number
 }
 
 interface AttendanceChartProps {
   records: AttendanceRecord[]
+  onDateRangeChange?: (dateRange: 'month' | '3months' | '6months' | 'year' | 'all') => void
 }
 
-export function AttendanceChart({ records }: AttendanceChartProps) {
+export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartProps) {
   const [dateRange, setDateRange] = useState<'month' | '3months' | '6months' | 'year' | 'all'>('3months')
+
+  const handleDateRangeChange = (value: 'month' | '3months' | '6months' | 'year' | 'all') => {
+    setDateRange(value)
+    if (onDateRangeChange) {
+      onDateRangeChange(value)
+    }
+  }
 
   const getFilteredRecords = () => {
     if (!records || records.length === 0) return []
@@ -53,6 +63,14 @@ export function AttendanceChart({ records }: AttendanceChartProps) {
     })
   }
 
+  // Expose date range change to parent component on mount and when it changes
+  useEffect(() => {
+    if (onDateRangeChange) {
+      onDateRangeChange(dateRange)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange])
+
   const formatChartData = () => {
     const filtered = getFilteredRecords()
     
@@ -65,8 +83,10 @@ export function AttendanceChart({ records }: AttendanceChartProps) {
         }),
         fullDate: record.attendance_date,
         Adultos: record.adults_count,
-        Jóvenes: record.teens_count,
+        Teens: record.teens_count,
         Niños: record.kids_count,
+        Bebés: record.babies_count || 0,
+        'Personas Nuevas': record.new_people_count || 0,
         Total: record.total_count
       }))
   }
@@ -99,7 +119,7 @@ export function AttendanceChart({ records }: AttendanceChartProps) {
             <TrendingUp className="w-5 h-5" />
             Gráfico de Asistencia
           </CardTitle>
-          <Select value={dateRange} onValueChange={(value: any) => setDateRange(value)}>
+          <Select value={dateRange} onValueChange={(value: any) => handleDateRangeChange(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -126,7 +146,8 @@ export function AttendanceChart({ records }: AttendanceChartProps) {
             <YAxis />
             <Tooltip 
               contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-              formatter={(value: any) => [value, '']}
+              formatter={(value: any, name: string) => [value, name]}
+              labelFormatter={(label) => `Fecha: ${label}`}
             />
             <Legend />
             <Line 
@@ -138,7 +159,7 @@ export function AttendanceChart({ records }: AttendanceChartProps) {
             />
             <Line 
               type="monotone" 
-              dataKey="Jóvenes" 
+              dataKey="Teens" 
               stroke="#10b981" 
               strokeWidth={2}
               dot={{ r: 4 }}
@@ -148,6 +169,21 @@ export function AttendanceChart({ records }: AttendanceChartProps) {
               dataKey="Niños" 
               stroke="#f97316" 
               strokeWidth={2}
+              dot={{ r: 4 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="Bebés" 
+              stroke="#ec4899" 
+              strokeWidth={2}
+              dot={{ r: 4 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="Personas Nuevas" 
+              stroke="#a855f7" 
+              strokeWidth={2}
+              strokeDasharray="5 5"
               dot={{ r: 4 }}
             />
             <Line 

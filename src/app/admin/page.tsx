@@ -25,7 +25,8 @@ import {
   MessageSquare,
   BarChart3,
   PieChart,
-  UserPlus
+  UserPlus,
+  Mail
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { UserManagement } from '@/components/admin/user-management'
@@ -45,13 +46,16 @@ interface DashboardStats {
   totalDevotionals: number
   // Enhanced analytics
   newUsersThisMonth: number
-  activeUsers: number
   totalEventRegistrations: number
   upcomingEvents: number
-  publishedContent: number
   draftContent: number
   teamMemberships: number
-  recentActivity: number
+  contactMessagesThisMonth: number
+  // Role breakdown
+  membersCount: number
+  staffCount: number
+  adminsCount: number
+  superAdminsCount: number
 }
 
 export default function AdminDashboard() {
@@ -74,13 +78,15 @@ export default function AdminDashboard() {
     totalAnnouncements: 0,
     totalDevotionals: 0,
     newUsersThisMonth: 0,
-    activeUsers: 0,
     totalEventRegistrations: 0,
     upcomingEvents: 0,
-    publishedContent: 0,
     draftContent: 0,
     teamMemberships: 0,
-    recentActivity: 0
+    contactMessagesThisMonth: 0,
+    membersCount: 0,
+    staffCount: 0,
+    adminsCount: 0,
+    superAdminsCount: 0
   })
 
   useEffect(() => {
@@ -204,38 +210,55 @@ export default function AdminDashboard() {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', oneMonthAgo.toISOString())
 
-      // Active users (users with recent activity - simplified)
-      const { count: activeUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .gte('updated_at', oneMonthAgo.toISOString())
-
       // Total event registrations
       const { count: totalEventRegistrations } = await supabase
         .from('event_registrations')
         .select('*', { count: 'exact', head: true })
 
-      // Upcoming events (next 30 days)
+      // Upcoming events (using end_date if available, otherwise start_date)
+      const now = new Date()
       const thirtyDaysFromNow = new Date()
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
-      const { count: upcomingEvents } = await supabase
-        .from('events')
-        .select('*', { count: 'exact', head: true })
-        .gte('start_date', new Date().toISOString())
-        .lte('start_date', thirtyDaysFromNow.toISOString())
-
-      // Published content
-      const { count: publishedAnnouncements } = await supabase
-        .from('announcements')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'published')
       
-      const { count: publishedDevotionals } = await supabase
-        .from('devotionals')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'published')
+      // Get all events and filter by end_date
+      const { data: allEvents } = await supabase
+        .from('events')
+        .select('id, start_date, end_date')
+      
+      const upcomingEventsCount = allEvents?.filter((event: { id: string; start_date: string; end_date: string | null }) => {
+        const eventEndDate = event.end_date ? new Date(event.end_date) : new Date(event.start_date)
+        return eventEndDate >= now && eventEndDate <= thirtyDaysFromNow
+      }).length || 0
 
-      // Draft content
+      // Contact messages this month
+      const { count: contactMessagesThisMonth } = await supabase
+        .from('contact_messages')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', oneMonthAgo.toISOString())
+
+      // Role breakdown
+      const { data: allProfiles } = await supabase
+        .from('profiles')
+        .select('role, super_admin')
+      
+      let membersCount = 0
+      let staffCount = 0
+      let adminsCount = 0
+      let superAdminsCount = 0
+      
+      allProfiles?.forEach((profile: { role: string; super_admin: boolean }) => {
+        if (profile.super_admin) {
+          superAdminsCount++
+        } else if (profile.role === 'Admin') {
+          adminsCount++
+        } else if (profile.role === 'Staff') {
+          staffCount++
+        } else {
+          membersCount++
+        }
+      })
+
+      // Draft content (pending content)
       const { count: draftAnnouncements } = await supabase
         .from('announcements')
         .select('*', { count: 'exact', head: true })
@@ -260,13 +283,15 @@ export default function AdminDashboard() {
         totalAnnouncements: announcementCount || 0,
         totalDevotionals: devotionalCount || 0,
         newUsersThisMonth: newUsersThisMonth || 0,
-        activeUsers: activeUsers || 0,
         totalEventRegistrations: totalEventRegistrations || 0,
-        upcomingEvents: upcomingEvents || 0,
-        publishedContent: (publishedAnnouncements || 0) + (publishedDevotionals || 0),
+        upcomingEvents: upcomingEventsCount,
         draftContent: (draftAnnouncements || 0) + (draftDevotionals || 0),
         teamMemberships: teamMemberships || 0,
-        recentActivity: (newUsersThisMonth || 0) + (totalEventRegistrations || 0)
+        contactMessagesThisMonth: contactMessagesThisMonth || 0,
+        membersCount,
+        staffCount,
+        adminsCount,
+        superAdminsCount
       })
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
@@ -391,46 +416,9 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      {/* Enhanced Stats Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card 
-          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
-          onClick={() => handleCardClick('users')}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Usuarios</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.totalUsers}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-600">+{stats.newUsersThisMonth} este mes</span>
-                </div>
-              </div>
-              <Users className="w-8 h-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
-          onClick={() => handleCardClick('teams')}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Equipos</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.totalTeams}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <Activity className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-600">{stats.teamMemberships} miembros</span>
-                </div>
-              </div>
-              <Users className="w-8 h-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
+        {/* Pendientes */}
         <Card 
           className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
           onClick={() => handleCardClick('pending')}
@@ -450,6 +438,120 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Total Usuarios */}
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
+          onClick={() => handleCardClick('users')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Total Usuarios</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.totalUsers}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Users className="w-3 h-3 text-blue-600" />
+                  <span className="text-xs text-blue-600">Total registrados</span>
+                </div>
+              </div>
+              <Users className="w-8 h-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Nuevos Usuarios */}
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
+          onClick={() => handleCardClick('users')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Nuevos Usuarios</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.newUsersThisMonth}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <TrendingUp className="w-3 h-3 text-green-600" />
+                  <span className="text-xs text-green-600">Último mes</span>
+                </div>
+              </div>
+              <UserPlus className="w-8 h-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Roles */}
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
+          onClick={() => handleCardClick('users')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-600 mb-2">Roles</p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-slate-900">{stats.membersCount}</span>
+                    <span className="text-slate-600">Miembros</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-slate-900">{stats.staffCount}</span>
+                    <span className="text-slate-600">Staff</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-slate-900">{stats.adminsCount}</span>
+                    <span className="text-slate-600">Admins</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold text-slate-900">{stats.superAdminsCount}</span>
+                    <span className="text-slate-600">Super Admins</span>
+                  </div>
+                </div>
+              </div>
+              <Shield className="w-8 h-8 text-purple-600 ml-4 flex-shrink-0" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Equipos */}
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
+          onClick={() => handleCardClick('teams')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Equipos</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.totalTeams}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Activity className="w-3 h-3 text-green-600" />
+                  <span className="text-xs text-green-600">{stats.teamMemberships} miembros</span>
+                </div>
+              </div>
+              <Users className="w-8 h-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contenido Pendiente */}
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
+          onClick={() => handleCardClick('content')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Contenido Pendiente</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.draftContent}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <FileText className="w-3 h-3 text-orange-600" />
+                  <span className="text-xs text-orange-600">Borradores</span>
+                </div>
+              </div>
+              <FileText className="w-8 h-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Próximos Eventos */}
         <Card 
           className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
           onClick={() => handleCardClick('events')}
@@ -457,93 +559,34 @@ export default function AdminDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Eventos</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.totalEvents}</p>
+                <p className="text-sm font-medium text-slate-600">Próximos Eventos</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.upcomingEvents}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <Calendar className="w-3 h-3 text-purple-600" />
-                  <span className="text-xs text-purple-600">{stats.upcomingEvents} próximos</span>
+                  <span className="text-xs text-purple-600">Próximos 30 días</span>
                 </div>
               </div>
               <Calendar className="w-8 h-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Additional Analytics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Formularios de Contacto */}
         <Card 
           className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
-          onClick={() => handleCardClick('analytics-registrations')}
+          onClick={() => router.push('/admin/contacto')}
         >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600">Registros</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.totalEventRegistrations}</p>
+                <p className="text-sm font-medium text-slate-600">Formularios de Contacto</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.contactMessagesThisMonth}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <UserCheck className="w-3 h-3 text-blue-600" />
-                  <span className="text-xs text-blue-600">Total registros</span>
+                  <Mail className="w-3 h-3 text-blue-600" />
+                  <span className="text-xs text-blue-600">Último mes</span>
                 </div>
               </div>
-              <UserCheck className="w-8 h-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
-          onClick={() => handleCardClick('analytics-content')}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Contenido Publicado</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.publishedContent}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <Eye className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-600">{stats.draftContent} borradores</span>
-                </div>
-              </div>
-              <FileText className="w-8 h-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
-          onClick={() => handleCardClick('analytics-users')}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Usuarios Activos</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.activeUsers}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <Activity className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-600">Último mes</span>
-                </div>
-              </div>
-              <Activity className="w-8 h-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:shadow-md transition-shadow duration-200 hover:bg-slate-50"
-          onClick={() => handleCardClick('analytics-activity')}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Actividad Reciente</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.recentActivity}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-blue-600" />
-                  <span className="text-xs text-blue-600">Este mes</span>
-                </div>
-              </div>
-              <BarChart3 className="w-8 h-8 text-blue-600" />
+              <Mail className="w-8 h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>

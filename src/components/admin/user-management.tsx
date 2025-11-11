@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Users, Shield, Crown, User } from 'lucide-react'
+import { Users, Shield, Crown, User, Plus } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { AddNewMemberModal } from './add-new-member-modal'
 
 interface User {
   id: string
@@ -26,12 +27,43 @@ export function UserManagement() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingUser, setUpdatingUser] = useState<string | null>(null)
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false)
+  const [currentUserIsSuperAdmin, setCurrentUserIsSuperAdmin] = useState(false)
 
   useEffect(() => {
     if (user) {
+      checkCurrentUserRole()
       fetchUsers()
     }
   }, [user])
+
+  const checkCurrentUserRole = async () => {
+    if (!user) return
+    
+    // Check if current user is super admin
+    if (user.email === 'opaulyc@gmail.com') {
+      setCurrentUserIsSuperAdmin(true)
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/debug-user-role', {
+        headers: {
+          'Authorization': `Bearer ${user.id}`,
+          'x-super-admin': 'true'
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.user?.super_admin) {
+          setCurrentUserIsSuperAdmin(true)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking super admin status:', error)
+    }
+  }
 
   const fetchUsers = async () => {
     try {
@@ -72,10 +104,22 @@ export function UserManagement() {
     }
   }
 
-  const updateUserRole = async (userId: string, role: string, superAdmin?: boolean) => {
+  const updateUserRole = async (userId: string, selectedValue: string) => {
     if (!user) return
 
     setUpdatingUser(userId)
+
+    // Parse the selected value - if it's "Super Admin", set role to Admin and superAdmin to true
+    let role = selectedValue
+    let superAdmin = false
+    
+    if (selectedValue === 'Super Admin') {
+      role = 'Admin'
+      superAdmin = true
+    } else {
+      // When selecting any other role, explicitly set superAdmin to false
+      superAdmin = false
+    }
 
     try {
       const headers: any = {
@@ -169,13 +213,23 @@ export function UserManagement() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Gestión de Usuarios ({users.length})
-        </CardTitle>
-      </CardHeader>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Gestión de Usuarios ({users.length})
+            </CardTitle>
+            <Button
+              onClick={() => setIsAddMemberModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Agregar Miembro
+            </Button>
+          </div>
+        </CardHeader>
       <CardContent className="space-y-4">
         {users.map((userItem) => (
           <div key={userItem.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -197,34 +251,36 @@ export function UserManagement() {
               {getRoleBadge(userItem.role, userItem.super_admin)}
               
               <Select
-                value={userItem.role}
+                value={userItem.super_admin ? 'Super Admin' : userItem.role}
                 onValueChange={(value) => updateUserRole(userItem.id, value)}
                 disabled={updatingUser === userItem.id}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Miembro">Miembro</SelectItem>
                   <SelectItem value="Staff">Staff</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
+                  {currentUserIsSuperAdmin && (
+                    <SelectItem value="Super Admin">Super Admin</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
-
-              {userItem.role === 'Admin' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateUserRole(userItem.id, 'Admin', !userItem.super_admin)}
-                  disabled={updatingUser === userItem.id}
-                >
-                  {userItem.super_admin ? 'Quitar Super Admin' : 'Hacer Super Admin'}
-                </Button>
-              )}
             </div>
           </div>
         ))}
       </CardContent>
     </Card>
+
+    <AddNewMemberModal
+      isOpen={isAddMemberModalOpen}
+      onClose={() => setIsAddMemberModalOpen(false)}
+      onMemberAdded={() => {
+        fetchUsers()
+        setIsAddMemberModalOpen(false)
+      }}
+    />
+    </>
   )
 }
