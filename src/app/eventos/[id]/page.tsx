@@ -2,11 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, MapPin, Users, ArrowLeft, CalendarCheck } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, ArrowLeft, CalendarCheck, Repeat } from 'lucide-react'
 import Link from 'next/link'
 import { EventRegistrationButton } from '@/components/ui/event-registration-button'
 import { EventShareButton } from '@/components/ui/event-share-button'
 import { notFound } from 'next/navigation'
+import { calculateNextOccurrence, getRecurrenceDescription, type RecurrenceConfig } from '@/lib/utils/recurrence'
 
 interface Event {
   id: string
@@ -19,6 +20,13 @@ interface Event {
   max_participants?: number
   status: string
   is_featured?: boolean
+  is_recurring?: boolean
+  recurrence_type?: 'weekly' | 'biweekly' | 'monthly' | 'annually'
+  recurrence_pattern?: 'days' | 'dates'
+  recurrence_days?: number[]
+  recurrence_dates?: number[]
+  recurrence_end_date?: string | null
+  recurrence_start_date?: string
   created_at: string
   updated_at: string
 }
@@ -73,12 +81,54 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     })
   }
 
-  const isUpcoming = (event: any) => {
+  const getEventDisplayDate = (event: Event) => {
     const now = new Date()
-    // Use end_date if it exists, otherwise use start_date
+    
+    // For recurring events, calculate next occurrence
+    if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+      const recurrenceConfig: RecurrenceConfig = {
+        is_recurring: event.is_recurring,
+        recurrence_type: event.recurrence_type,
+        recurrence_pattern: event.recurrence_pattern,
+        recurrence_days: event.recurrence_days || [],
+        recurrence_dates: event.recurrence_dates || [],
+        recurrence_start_date: event.recurrence_start_date || event.start_date,
+        recurrence_end_date: event.recurrence_end_date,
+        start_date: event.start_date
+      }
+      const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+      return nextOccurrence || new Date(event.start_date)
+    }
+    
+    // For non-recurring events, use start_date
+    return new Date(event.start_date)
+  }
+
+  const isUpcoming = (event: Event) => {
+    const now = new Date()
+    
+    // For recurring events, check if there's a next occurrence
+    if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+      const recurrenceConfig: RecurrenceConfig = {
+        is_recurring: event.is_recurring,
+        recurrence_type: event.recurrence_type,
+        recurrence_pattern: event.recurrence_pattern,
+        recurrence_days: event.recurrence_days || [],
+        recurrence_dates: event.recurrence_dates || [],
+        recurrence_start_date: event.recurrence_start_date || event.start_date,
+        recurrence_end_date: event.recurrence_end_date,
+        start_date: event.start_date
+      }
+      const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+      return nextOccurrence !== null && nextOccurrence > now
+    }
+    
+    // For non-recurring events, use end_date if it exists, otherwise use start_date
     const dateToCheck = event.end_date ? new Date(event.end_date) : new Date(event.start_date)
     return dateToCheck > now
   }
+
+  const displayDate = getEventDisplayDate(event)
 
   return (
     <div className="min-h-screen bg-slate-50 pt-16 lg:pt-20">
@@ -106,7 +156,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               </Link>
             </div>
             <div className="text-center">
-              <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
                 {event.is_featured && (
                   <Badge className="bg-blue-600 text-white">
                     Destacado
@@ -121,6 +171,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                     Pasado
                   </Badge>
                 )}
+                {event.is_recurring && (
+                  <Badge className="bg-purple-600 text-white flex items-center gap-1">
+                    <Repeat className="w-3 h-3" />
+                    Recurrente
+                  </Badge>
+                )}
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white mb-6 tracking-tight drop-shadow-lg">
                 {event.title}
@@ -128,13 +184,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               <div className="flex flex-wrap items-center justify-center gap-6 text-slate-200 text-lg">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
-                  <span>{formatDate(event.start_date)}</span>
+                  <span>
+                    {formatDate(displayDate.toISOString())}
+                    {event.is_recurring && (
+                      <span className="ml-2 text-purple-200">(Próxima)</span>
+                    )}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5" />
                   <span>
                     {formatTime(event.start_date)}
-                    {event.end_date && ` - ${formatTime(event.end_date)}`}
+                    {!event.is_recurring && event.end_date && ` - ${formatTime(event.end_date)}`}
                   </span>
                 </div>
                 {event.location && (
@@ -178,16 +239,34 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                       <div className="flex items-center gap-3">
                         <Calendar className="w-5 h-5 text-slate-500" />
                         <div>
-                          <p className="text-sm font-medium text-slate-900">Fecha de Inicio</p>
-                          <p className="text-sm text-slate-600">{formatDate(event.start_date)}</p>
+                          <p className="text-sm font-medium text-slate-900">
+                            {event.is_recurring ? 'Próxima Fecha' : 'Fecha de Inicio'}
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            {formatDate(displayDate.toISOString())}
+                            {event.is_recurring && (
+                              <span className="ml-1 text-purple-600 font-medium">(Próxima)</span>
+                            )}
+                          </p>
                         </div>
                       </div>
-                      {event.end_date && (
+                      {!event.is_recurring && event.end_date && (
                         <div className="flex items-center gap-3">
                           <CalendarCheck className="w-5 h-5 text-slate-500" />
                           <div>
                             <p className="text-sm font-medium text-slate-900">Fecha de Fin</p>
                             <p className="text-sm text-slate-600">{formatDate(event.end_date)}</p>
+                          </div>
+                        </div>
+                      )}
+                      {event.is_recurring && event.recurrence_end_date && (
+                        <div className="flex items-center gap-3">
+                          <CalendarCheck className="w-5 h-5 text-slate-500" />
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">Fin de Recurrencia</p>
+                            <p className="text-sm text-slate-600">
+                              {formatDate(event.recurrence_end_date)}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -197,10 +276,30 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                           <p className="text-sm font-medium text-slate-900">Hora</p>
                           <p className="text-sm text-slate-600">
                             {formatTime(event.start_date)}
-                            {event.end_date && ` - ${formatTime(event.end_date)}`}
+                            {!event.is_recurring && event.end_date && ` - ${formatTime(event.end_date)}`}
                           </p>
                         </div>
                       </div>
+                      {event.is_recurring && event.recurrence_type && (
+                        <div className="flex items-start gap-3">
+                          <Repeat className="w-5 h-5 text-purple-500 mt-1" />
+                          <div>
+                            <p className="text-sm font-medium text-slate-900 mb-1">Recurrencia</p>
+                            <p className="text-sm text-purple-600 font-medium">
+                              {getRecurrenceDescription({
+                                is_recurring: event.is_recurring,
+                                recurrence_type: event.recurrence_type,
+                                recurrence_pattern: event.recurrence_pattern,
+                                recurrence_days: event.recurrence_days || [],
+                                recurrence_dates: event.recurrence_dates || [],
+                                recurrence_start_date: event.recurrence_start_date || event.start_date,
+                                recurrence_end_date: event.recurrence_end_date,
+                                start_date: event.start_date
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       {event.location && (
                         <div className="flex items-center gap-3">
                           <MapPin className="w-5 h-5 text-slate-500" />

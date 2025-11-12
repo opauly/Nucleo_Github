@@ -9,6 +9,7 @@ import { Map } from "@/components/ui/map";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { calculateNextOccurrence, type RecurrenceConfig } from "@/lib/utils/recurrence";
 
 export default function Home() {
   // Fallback teams data in case Supabase is not available
@@ -156,8 +157,26 @@ export default function Home() {
           } else {
             console.log("✅ Events fetched successfully:", eventsData);
             // Filter for upcoming events: end_date (if exists) > now OR start_date > now
+            // For recurring events, check if there's a next occurrence
             const now = new Date()
             const upcomingEvents = (eventsData || []).filter((event: any) => {
+              // Check if event is recurring
+              if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+                const recurrenceConfig: RecurrenceConfig = {
+                  is_recurring: event.is_recurring,
+                  recurrence_type: event.recurrence_type,
+                  recurrence_pattern: event.recurrence_pattern,
+                  recurrence_days: event.recurrence_days || [],
+                  recurrence_dates: event.recurrence_dates || [],
+                  recurrence_start_date: event.recurrence_start_date || event.start_date,
+                  recurrence_end_date: event.recurrence_end_date,
+                  start_date: event.start_date
+                }
+                const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+                return nextOccurrence !== null && nextOccurrence > now
+              }
+              
+              // Non-recurring event logic
               const startDate = new Date(event.start_date)
               const endDate = event.end_date ? new Date(event.end_date) : null
               
@@ -504,22 +523,45 @@ export default function Home() {
                   {eventsExpanded && (
                     <div className="p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
                       {events.length > 0 ? (
-                        events.slice(0, 3).map((event, index) => (
-                          <div key={event.id || index} className="bg-slate-50 rounded-lg p-3 hover:bg-slate-100 transition-colors">
-                            <h5 className="font-medium text-slate-900 text-sm mb-1 line-clamp-1">
-                              {event.title}
-                            </h5>
-                            <p className="text-slate-600 text-xs mb-1 line-clamp-2">
-                              {event.description ? event.description.replace(/<[^>]*>/g, '') : 'Evento de la comunidad'}
-                            </p>
-                            <p className="text-slate-500 text-xs mb-2">
-                              {new Date(event.start_date).toLocaleDateString('es-ES', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
-                            </p>
+                        events.slice(0, 3).map((event, index) => {
+                          // Calculate display date for recurring events
+                          let displayDate = new Date(event.start_date)
+                          if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+                            const recurrenceConfig: RecurrenceConfig = {
+                              is_recurring: event.is_recurring,
+                              recurrence_type: event.recurrence_type,
+                              recurrence_pattern: event.recurrence_pattern,
+                              recurrence_days: event.recurrence_days || [],
+                              recurrence_dates: event.recurrence_dates || [],
+                              recurrence_start_date: event.recurrence_start_date || event.start_date,
+                              recurrence_end_date: event.recurrence_end_date,
+                              start_date: event.start_date
+                            }
+                            const nextOccurrence = calculateNextOccurrence(recurrenceConfig, new Date())
+                            if (nextOccurrence) {
+                              displayDate = nextOccurrence
+                            }
+                          }
+                          
+                          return (
+                            <div key={event.id || index} className="bg-slate-50 rounded-lg p-3 hover:bg-slate-100 transition-colors">
+                              <h5 className="font-medium text-slate-900 text-sm mb-1 line-clamp-1">
+                                {event.title}
+                              </h5>
+                              <p className="text-slate-600 text-xs mb-1 line-clamp-2">
+                                {event.description ? event.description.replace(/<[^>]*>/g, '') : 'Evento de la comunidad'}
+                              </p>
+                              <p className="text-slate-500 text-xs mb-2">
+                                {displayDate.toLocaleDateString('es-ES', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                                {event.is_recurring && (
+                                  <span className="ml-1 text-purple-600 font-medium">(Próxima)</span>
+                                )}
+                              </p>
                             {event.event_teams && event.event_teams.length > 0 && (
                               <div className="flex flex-wrap gap-1 mb-2">
                                 {event.event_teams.map((eventTeam: any) => (
@@ -543,7 +585,8 @@ export default function Home() {
                               </Button>
                             </Link>
                           </div>
-                        ))
+                          )
+                        })
                       ) : (
                         <div className="bg-slate-50 rounded-lg p-3">
                           <p className="text-slate-600 text-sm">

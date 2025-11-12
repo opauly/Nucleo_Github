@@ -18,6 +18,7 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { calculateNextOccurrence, type RecurrenceConfig } from '@/lib/utils/recurrence'
 
 interface EventRegistration {
   event_id: string
@@ -29,18 +30,28 @@ interface EventRegistration {
     title: string
     description: string
     start_date: string
-    end_date: string
+    end_date: string | null
     location: string
     image_url: string | null
     status: string
+    is_recurring?: boolean
+    recurrence_type?: 'weekly' | 'biweekly' | 'monthly' | 'annually'
+    recurrence_pattern?: 'days' | 'dates'
+    recurrence_days?: number[]
+    recurrence_dates?: number[]
+    recurrence_end_date?: string | null
+    recurrence_start_date?: string
     created_at: string
   }
 }
+
+type FilterType = 'all' | 'upcoming' | 'past'
 
 export function UserEvents() {
   const { user } = useAuth()
   const [events, setEvents] = useState<EventRegistration[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<FilterType>('all')
   const [removalModal, setRemovalModal] = useState<{
     isOpen: boolean
     eventId: string
@@ -151,10 +162,71 @@ export function UserEvents() {
 
   const isEventUpcoming = (event: any) => {
     const now = new Date()
-    // Use end_date if it exists, otherwise use start_date
+    
+    // For recurring events, check if there's a next occurrence
+    if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+      const recurrenceConfig: RecurrenceConfig = {
+        is_recurring: event.is_recurring,
+        recurrence_type: event.recurrence_type,
+        recurrence_pattern: event.recurrence_pattern,
+        recurrence_days: event.recurrence_days || [],
+        recurrence_dates: event.recurrence_dates || [],
+        recurrence_start_date: event.recurrence_start_date || event.start_date,
+        recurrence_end_date: event.recurrence_end_date,
+        start_date: event.start_date
+      }
+      const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+      return nextOccurrence !== null && nextOccurrence > now
+    }
+    
+    // For non-recurring events, use end_date if it exists, otherwise use start_date
     const dateToCheck = event.end_date ? new Date(event.end_date) : new Date(event.start_date)
     return dateToCheck > now
   }
+
+  const getEventDisplayDate = (event: any) => {
+    const now = new Date()
+    
+    // For recurring events, calculate next occurrence
+    if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+      const recurrenceConfig: RecurrenceConfig = {
+        is_recurring: event.is_recurring,
+        recurrence_type: event.recurrence_type,
+        recurrence_pattern: event.recurrence_pattern,
+        recurrence_days: event.recurrence_days || [],
+        recurrence_dates: event.recurrence_dates || [],
+        recurrence_start_date: event.recurrence_start_date || event.start_date,
+        recurrence_end_date: event.recurrence_end_date,
+        start_date: event.start_date
+      }
+      const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+      return nextOccurrence || new Date(event.start_date)
+    }
+    
+    // For non-recurring events, use start_date
+    return new Date(event.start_date)
+  }
+
+  const getFilteredEvents = () => {
+    if (filter === 'all') {
+      return events
+    }
+    
+    return events.filter((registration) => {
+      const isUpcoming = isEventUpcoming(registration.events)
+      if (filter === 'upcoming') {
+        return isUpcoming
+      } else if (filter === 'past') {
+        return !isUpcoming
+      }
+      return true
+    })
+  }
+
+  const filteredEvents = getFilteredEvents()
+  
+  const upcomingCount = events.filter((r) => isEventUpcoming(r.events)).length
+  const pastCount = events.filter((r) => !isEventUpcoming(r.events)).length
 
   if (loading) {
     return (
@@ -178,10 +250,40 @@ export function UserEvents() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Mis Eventos ({events.length})
-          </CardTitle>
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Mis Eventos ({filteredEvents.length})
+            </CardTitle>
+          </div>
+          {events.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={filter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('all')}
+                className="flex-shrink-0"
+              >
+                Todos ({events.length})
+              </Button>
+              <Button
+                variant={filter === 'upcoming' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('upcoming')}
+                className="flex-shrink-0"
+              >
+                Próximos ({upcomingCount})
+              </Button>
+              <Button
+                variant={filter === 'past' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('past')}
+                className="flex-shrink-0"
+              >
+                Pasados ({pastCount})
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {events.length === 0 ? (
@@ -192,27 +294,38 @@ export function UserEvents() {
                 <a href="/eventos">Explorar Eventos</a>
               </Button>
             </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-600">
+                {filter === 'upcoming' 
+                  ? 'No tienes eventos próximos' 
+                  : filter === 'past'
+                  ? 'No tienes eventos pasados'
+                  : 'No hay eventos para mostrar'}
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
-              {events.map((registration) => (
+              {filteredEvents.map((registration) => (
                 <div key={registration.event_id} className="p-4 border rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-slate-900">{registration.events.title}</h3>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2 mb-2 flex-wrap">
+                        <h3 className="font-semibold text-slate-900 flex-shrink-0">{registration.events.title}</h3>
                         {isEventUpcoming(registration.events) && (
-                          <Badge className="bg-blue-100 text-blue-800 border-blue-200">Próximo</Badge>
+                          <Badge className="bg-blue-100 text-blue-800 border-blue-200 flex-shrink-0">Próximo</Badge>
                         )}
                       </div>
                       <p className="text-sm text-slate-600 mb-3 line-clamp-2">
-                        {registration.events.description}
+                        {registration.events.description?.replace(/<[^>]*>/g, '') || ''}
                       </p>
                       <div className="space-y-1 mb-3">
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                           <Clock className="w-4 h-4" />
                           <span>
-                            {formatDate(registration.events.start_date)}
-                            {registration.events.end_date && registration.events.end_date !== registration.events.start_date && (
+                            {formatDate(getEventDisplayDate(registration.events).toISOString())}
+                            {!registration.events.is_recurring && registration.events.end_date && registration.events.end_date !== registration.events.start_date && (
                               <span> - {formatDate(registration.events.end_date)}</span>
                             )}
                           </span>
@@ -231,11 +344,12 @@ export function UserEvents() {
                         Registrado: {new Date(registration.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         asChild
+                        className="whitespace-nowrap"
                       >
                         <a href={`/eventos/${registration.event_id}`}>
                           <ExternalLink className="w-4 h-4 mr-2" />
@@ -251,7 +365,7 @@ export function UserEvents() {
                             eventId: registration.event_id,
                             eventTitle: registration.events.title
                           })}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
+                          className="text-red-600 border-red-300 hover:bg-red-50 whitespace-nowrap"
                         >
                           <UserX className="w-4 h-4 mr-2" />
                           Cancelar

@@ -24,6 +24,13 @@ export async function GET(request: NextRequest) {
           location,
           image_url,
           status,
+          is_recurring,
+          recurrence_type,
+          recurrence_pattern,
+          recurrence_days,
+          recurrence_dates,
+          recurrence_end_date,
+          recurrence_start_date,
           created_at
         )
       `)

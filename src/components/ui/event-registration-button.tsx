@@ -115,9 +115,19 @@ export function EventRegistrationButton({
   }
 
   if (isRegistered) {
-    const statusText = registrationStatus === 'pending' ? 'Pendiente' : 'Registrado'
+    let statusText = 'Registrado'
+    let statusColor = 'bg-blue-600'
     
-    const statusColor = registrationStatus === 'pending' ? 'bg-yellow-600' : 'bg-blue-600'
+    if (registrationStatus === 'pending') {
+      statusText = 'Pendiente'
+      statusColor = 'bg-yellow-600'
+    } else if (registrationStatus === 'rejected') {
+      statusText = 'Rechazado'
+      statusColor = 'bg-red-600'
+    } else if (registrationStatus === 'approved') {
+      statusText = 'Registrado'
+      statusColor = 'bg-blue-600'
+    }
 
     return (
       <Button 

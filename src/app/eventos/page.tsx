@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, MapPin, Users, CalendarCheck } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, CalendarCheck, Repeat } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { calculateNextOccurrence, getRecurrenceDescription, type RecurrenceConfig } from '@/lib/utils/recurrence'
 
 
 
@@ -66,9 +67,26 @@ export default function EventosPage() {
     const now = new Date()
     if (activeFilter === 'upcoming') {
       // An event is upcoming if:
-      // - It has an end_date and it's in the future, OR
-      // - The start_date is in the future
+      // - For recurring events: next occurrence is in the future
+      // - For non-recurring: end_date (if exists) > now OR start_date > now
       const upcomingEvents = events.filter(event => {
+        // Check if event is recurring
+        if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+          const recurrenceConfig: RecurrenceConfig = {
+            is_recurring: event.is_recurring,
+            recurrence_type: event.recurrence_type,
+            recurrence_pattern: event.recurrence_pattern,
+            recurrence_days: event.recurrence_days || [],
+            recurrence_dates: event.recurrence_dates || [],
+            recurrence_start_date: event.recurrence_start_date || event.start_date,
+            recurrence_end_date: event.recurrence_end_date,
+            start_date: event.start_date
+          }
+          const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+          return nextOccurrence !== null && nextOccurrence > now
+        }
+        
+        // Non-recurring event logic
         const startDate = new Date(event.start_date)
         const endDate = event.end_date ? new Date(event.end_date) : null
         
@@ -82,9 +100,27 @@ export default function EventosPage() {
       setFilteredEvents(upcomingEvents)
     } else {
       // An event is past if:
-      // - It has an end_date and it's in the past, OR
-      // - It doesn't have an end_date and start_date is in the past
+      // - For recurring events: no more occurrences (next occurrence is null or in past)
+      // - For non-recurring: end_date (if exists) <= now OR start_date <= now
       const pastEvents = events.filter(event => {
+        // Check if event is recurring
+        if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+          const recurrenceConfig: RecurrenceConfig = {
+            is_recurring: event.is_recurring,
+            recurrence_type: event.recurrence_type,
+            recurrence_pattern: event.recurrence_pattern,
+            recurrence_days: event.recurrence_days || [],
+            recurrence_dates: event.recurrence_dates || [],
+            recurrence_start_date: event.recurrence_start_date || event.start_date,
+            recurrence_end_date: event.recurrence_end_date,
+            start_date: event.start_date
+          }
+          const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+          // If no next occurrence or it's in the past, event is past
+          return nextOccurrence === null || nextOccurrence <= now
+        }
+        
+        // Non-recurring event logic
         const startDate = new Date(event.start_date)
         const endDate = event.end_date ? new Date(event.end_date) : null
         
@@ -118,9 +154,50 @@ export default function EventosPage() {
     })
   }
 
+  const getEventDisplayDate = (event: any) => {
+    const now = new Date()
+    
+    // For recurring events, calculate next occurrence
+    if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+      const recurrenceConfig: RecurrenceConfig = {
+        is_recurring: event.is_recurring,
+        recurrence_type: event.recurrence_type,
+        recurrence_pattern: event.recurrence_pattern,
+        recurrence_days: event.recurrence_days || [],
+        recurrence_dates: event.recurrence_dates || [],
+        recurrence_start_date: event.recurrence_start_date || event.start_date,
+        recurrence_end_date: event.recurrence_end_date,
+        start_date: event.start_date
+      }
+      const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+      return nextOccurrence || new Date(event.start_date)
+    }
+    
+    // For non-recurring events, use start_date
+    return new Date(event.start_date)
+  }
+
   const isUpcoming = (event: any) => {
     const now = new Date()
-    // Use end_date if it exists, otherwise use start_date
+    const displayDate = getEventDisplayDate(event)
+    
+    // For recurring events, check if there's a next occurrence
+    if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+      const recurrenceConfig: RecurrenceConfig = {
+        is_recurring: event.is_recurring,
+        recurrence_type: event.recurrence_type,
+        recurrence_pattern: event.recurrence_pattern,
+        recurrence_days: event.recurrence_days || [],
+        recurrence_dates: event.recurrence_dates || [],
+        recurrence_start_date: event.recurrence_start_date || event.start_date,
+        recurrence_end_date: event.recurrence_end_date,
+        start_date: event.start_date
+      }
+      const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+      return nextOccurrence !== null && nextOccurrence > now
+    }
+    
+    // For non-recurring events, use end_date if it exists, otherwise use start_date
     const dateToCheck = event.end_date ? new Date(event.end_date) : new Date(event.start_date)
     return dateToCheck > now
   }
@@ -231,19 +308,23 @@ export default function EventosPage() {
                           </Badge>
                         </div>
                       )}
-                      {isUpcoming(event) ? (
-                        <div className="absolute top-4 left-4">
+                      <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
+                        {isUpcoming(event) ? (
                           <Badge className="bg-green-600 text-white">
                             Próximo
                           </Badge>
-                        </div>
-                      ) : (
-                        <div className="absolute top-4 left-4">
+                        ) : (
                           <Badge className="bg-slate-600 text-white">
                             Pasado
                           </Badge>
-                        </div>
-                      )}
+                        )}
+                        {event.is_recurring && (
+                          <Badge className="bg-purple-600 text-white flex items-center gap-1">
+                            <Repeat className="w-3 h-3" />
+                            Recurrente
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="h-48 relative bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center">
@@ -258,19 +339,23 @@ export default function EventosPage() {
                           </Badge>
                         </div>
                       )}
-                      {isUpcoming(event) ? (
-                        <div className="absolute top-4 left-4">
+                      <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
+                        {isUpcoming(event) ? (
                           <Badge className="bg-green-600 text-white">
                             Próximo
                           </Badge>
-                        </div>
-                      ) : (
-                        <div className="absolute top-4 left-4">
+                        ) : (
                           <Badge className="bg-slate-600 text-white">
                             Pasado
                           </Badge>
-                        </div>
-                      )}
+                        )}
+                        {event.is_recurring && (
+                          <Badge className="bg-purple-600 text-white flex items-center gap-1">
+                            <Repeat className="w-3 h-3" />
+                            Recurrente
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -289,14 +374,19 @@ export default function EventosPage() {
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         <span>
-                          {new Date(event.start_date).toLocaleDateString('es-ES', {
+                          {getEventDisplayDate(event).toLocaleDateString('es-ES', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'
                           })}
+                          {event.is_recurring && (
+                            <span className="ml-1 text-purple-600 font-medium">
+                              (Próxima)
+                            </span>
+                          )}
                         </span>
                       </div>
-                      {event.end_date && (
+                      {!event.is_recurring && event.end_date && (
                         <div className="flex items-center gap-1">
                           <CalendarCheck className="w-3 h-3" />
                           <span>
@@ -312,7 +402,7 @@ export default function EventosPage() {
                         <Clock className="w-3 h-3" />
                         <span>
                           {formatTime(event.start_date)}
-                          {event.end_date && ` - ${formatTime(event.end_date)}`}
+                          {!event.is_recurring && event.end_date && ` - ${formatTime(event.end_date)}`}
                         </span>
                       </div>
                       {event.location && (
@@ -322,6 +412,27 @@ export default function EventosPage() {
                         </div>
                       )}
                     </div>
+                    
+                    {/* Recurrence Description */}
+                    {event.is_recurring && event.recurrence_type && (
+                      <div className="mb-4 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                        <div className="flex items-center gap-2 text-xs text-purple-700">
+                          <Repeat className="w-3 h-3" />
+                          <span className="font-medium">
+                            {getRecurrenceDescription({
+                              is_recurring: event.is_recurring,
+                              recurrence_type: event.recurrence_type,
+                              recurrence_pattern: event.recurrence_pattern,
+                              recurrence_days: event.recurrence_days || [],
+                              recurrence_dates: event.recurrence_dates || [],
+                              recurrence_start_date: event.recurrence_start_date || event.start_date,
+                              recurrence_end_date: event.recurrence_end_date,
+                              start_date: event.start_date
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     
                     {/* Team Information */}
                     {event.event_teams && event.event_teams.length > 0 && (

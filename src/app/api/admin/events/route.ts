@@ -81,7 +81,14 @@ export async function POST(request: NextRequest) {
       team_id, 
       team_ids = [], 
       created_by, 
-      image_url 
+      image_url,
+      is_recurring = false,
+      recurrence_type,
+      recurrence_pattern,
+      recurrence_days,
+      recurrence_dates,
+      recurrence_end_date,
+      recurrence_start_date
     } = await request.json()
 
     if (!title || !start_date || !created_by) {
@@ -106,6 +113,13 @@ export async function POST(request: NextRequest) {
           team_id: team_id || null,
           created_by,
           image_url: image_url || null,
+          is_recurring: is_recurring || false,
+          recurrence_type: is_recurring ? recurrence_type : null,
+          recurrence_pattern: is_recurring ? recurrence_pattern : null,
+          recurrence_days: is_recurring && recurrence_pattern === 'days' ? recurrence_days : null,
+          recurrence_dates: is_recurring && recurrence_pattern === 'dates' ? recurrence_dates : null,
+          recurrence_end_date: is_recurring && recurrence_end_date ? recurrence_end_date : null,
+          recurrence_start_date: is_recurring && recurrence_start_date ? recurrence_start_date : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
