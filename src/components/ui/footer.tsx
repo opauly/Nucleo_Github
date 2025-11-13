@@ -110,13 +110,23 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
-          <p className="text-sm">
-            © 2025 Núcleo. Todos los derechos reservados. 
-            <span className="block mt-1">
+        <div className="border-t border-slate-800 mt-8 pt-8">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-sm text-slate-400">
+            <p>
+              © {new Date().getFullYear()} Núcleo. Todos los derechos reservados.
+            </p>
+            <span className="hidden md:inline">•</span>
+            <Link 
+              href="/terminos-y-condiciones" 
+              className="hover:text-white transition-colors underline underline-offset-4"
+            >
+              Términos y Condiciones
+            </Link>
+            <span className="hidden md:inline">•</span>
+            <p className="text-center md:text-left">
               Hacemos vida juntos en comunidad.
-            </span>
-          </p>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

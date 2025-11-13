@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyDevotionalSubscribers } from '@/lib/email/notify-subscribers'
 
 // GET - Fetch all devotionals
 export async function GET() {
@@ -106,6 +107,20 @@ export async function POST(request: NextRequest) {
         { error: 'Error creating devotional' },
         { status: 500 }
       )
+    }
+
+    // Send email notifications if published
+    if (status === 'published' && devotional) {
+      // Don't await - send emails in background
+      notifyDevotionalSubscribers(
+        devotional.id,
+        devotional.title,
+        devotional.author,
+        devotional.summary
+      ).catch(error => {
+        console.error('Error sending devotional notifications:', error)
+        // Don't fail the request if email sending fails
+      })
     }
 
     return NextResponse.json({

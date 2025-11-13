@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LocationSelector } from '@/components/ui/location-selector'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { ProfilePictureUpload } from '@/components/ui/profile-picture-upload'
-import { AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { AlertCircle, CheckCircle, Eye, EyeOff, Bell } from 'lucide-react'
 import Link from 'next/link'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export default function RegistroPage() {
   const [formData, setFormData] = useState({
@@ -25,6 +26,14 @@ export default function RegistroPage() {
     canton: '',
     distrito: ''
   })
+  
+  const [emailPreferences, setEmailPreferences] = useState({
+    email_subscribe_announcements: true,
+    email_subscribe_events: true,
+    email_subscribe_devotionals: true
+  })
+  
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   
   const [profilePicture, setProfilePicture] = useState<{ file: File; tempUrl: string } | null>(null)
 
@@ -71,6 +80,11 @@ export default function RegistroPage() {
 
     if (!formData.nombre || !formData.apellido1 || !formData.phone || !formData.birth_date || !formData.provincia || !formData.canton || !formData.distrito) {
       setMessage('Todos los campos son obligatorios')
+      return false
+    }
+
+    if (!acceptedTerms) {
+      setMessage('Debe aceptar los Términos y Condiciones para crear una cuenta')
       return false
     }
 
@@ -149,7 +163,10 @@ export default function RegistroPage() {
               provincia: formData.provincia,
               canton: formData.canton,
               distrito: formData.distrito,
-              profile_picture_url: profilePictureUrl
+              profile_picture_url: profilePictureUrl,
+              email_subscribe_announcements: emailPreferences.email_subscribe_announcements,
+              email_subscribe_events: emailPreferences.email_subscribe_events,
+              email_subscribe_devotionals: emailPreferences.email_subscribe_devotionals
             }
           })
         })
@@ -389,11 +406,96 @@ export default function RegistroPage() {
                     disabled={isSubmitting}
                   />
 
+                  {/* Email Notifications */}
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Bell className="w-5 h-5 text-slate-600" />
+                      <h3 className="text-lg font-semibold text-slate-900">Notificaciones por Email</h3>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-4">
+                      Recibe alertas cuando se publiquen nuevos contenidos
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+                        <div className="flex-1">
+                          <label htmlFor="reg-subscribe-announcements" className="text-sm font-medium text-slate-900 cursor-pointer">
+                            Anuncios
+                          </label>
+                          <p className="text-xs text-slate-500">Recibe notificaciones de nuevos anuncios</p>
+                        </div>
+                        <Checkbox
+                          id="reg-subscribe-announcements"
+                          checked={emailPreferences.email_subscribe_announcements}
+                          onCheckedChange={(checked) => setEmailPreferences({ ...emailPreferences, email_subscribe_announcements: checked as boolean })}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+                        <div className="flex-1">
+                          <label htmlFor="reg-subscribe-events" className="text-sm font-medium text-slate-900 cursor-pointer">
+                            Eventos
+                          </label>
+                          <p className="text-xs text-slate-500">Recibe notificaciones de nuevos eventos</p>
+                        </div>
+                        <Checkbox
+                          id="reg-subscribe-events"
+                          checked={emailPreferences.email_subscribe_events}
+                          onCheckedChange={(checked) => setEmailPreferences({ ...emailPreferences, email_subscribe_events: checked as boolean })}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+                        <div className="flex-1">
+                          <label htmlFor="reg-subscribe-devotionals" className="text-sm font-medium text-slate-900 cursor-pointer">
+                            Devocionales
+                          </label>
+                          <p className="text-xs text-slate-500">Recibe notificaciones de nuevos devocionales</p>
+                        </div>
+                        <Checkbox
+                          id="reg-subscribe-devotionals"
+                          checked={emailPreferences.email_subscribe_devotionals}
+                          onCheckedChange={(checked) => setEmailPreferences({ ...emailPreferences, email_subscribe_devotionals: checked as boolean })}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Terms and Conditions */}
+                  <div className="pt-4 border-t">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="accept-terms"
+                        checked={acceptedTerms}
+                        onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                        disabled={isSubmitting}
+                        className="mt-1 flex-shrink-0"
+                      />
+                      <label 
+                        htmlFor="accept-terms" 
+                        className="text-sm text-slate-700 cursor-pointer leading-relaxed"
+                      >
+                        Acepto los{' '}
+                        <Link 
+                          href="/terminos-y-condiciones" 
+                          target="_blank"
+                          className="text-blue-600 hover:text-blue-700 underline underline-offset-2 font-medium"
+                        >
+                          Términos y Condiciones de Uso
+                        </Link>
+                        {' '}de Núcleo *
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
+                    disabled={isSubmitting || !acceptedTerms}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? 'Creando cuenta...' : 'Crear Cuenta'}
                   </Button>

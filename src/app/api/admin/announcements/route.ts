@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyAnnouncementSubscribers } from '@/lib/email/notify-subscribers'
 
 // GET - Fetch all announcements
 export async function GET() {
@@ -105,6 +106,19 @@ export async function POST(request: NextRequest) {
         { error: 'Error creating announcement' },
         { status: 500 }
       )
+    }
+
+    // Send email notifications if published
+    if (status === 'published' && announcement) {
+      // Don't await - send emails in background
+      notifyAnnouncementSubscribers(
+        announcement.id,
+        announcement.title,
+        announcement.summary
+      ).catch(error => {
+        console.error('Error sending announcement notifications:', error)
+        // Don't fail the request if email sending fails
+      })
     }
 
     return NextResponse.json({

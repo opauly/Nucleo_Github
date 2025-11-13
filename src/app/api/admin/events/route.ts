@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyEventSubscribers } from '@/lib/email/notify-subscribers'
 
 // GET - Fetch all events
 export async function GET() {
@@ -150,6 +151,20 @@ export async function POST(request: NextRequest) {
         console.error('Error creating team associations:', teamError)
         // Don't fail the entire request, just log the error
       }
+    }
+
+    // Send email notifications if published
+    if (status === 'published' && event) {
+      // Don't await - send emails in background
+      notifyEventSubscribers(
+        event.id,
+        event.title,
+        event.start_date,
+        event.location
+      ).catch(error => {
+        console.error('Error sending event notifications:', error)
+        // Don't fail the request if email sending fails
+      })
     }
 
     return NextResponse.json({

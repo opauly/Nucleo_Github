@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyDevotionalSubscribers } from '@/lib/email/notify-subscribers'
 
 // GET - Fetch single devotional
 export async function GET(
@@ -87,8 +88,18 @@ export async function PUT(
       )
     }
 
+    // Get current devotional to check if it was already published
+    const { data: currentDevotional } = await supabase
+      .from('devotionals')
+      .select('published_at')
+      .eq('id', id)
+      .single()
+
+    const wasAlreadyPublished = currentDevotional?.published_at !== null
+
     // Convert status to published_at
     const publishedAt = status === 'published' ? new Date().toISOString() : null
+    const isNewlyPublished = status === 'published' && !wasAlreadyPublished
 
     const { data: devotional, error } = await supabase
       .from('devotionals')
@@ -99,7 +110,7 @@ export async function PUT(
         content,
         image_url: image_url || null,
         published_at: publishedAt, // Mapped from status
-                  is_featured: is_featured,   // From form input
+        is_featured: is_featured,   // From form input
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -112,6 +123,20 @@ export async function PUT(
         { error: 'Error updating devotional' },
         { status: 500 }
       )
+    }
+
+    // Send email notifications if newly published
+    if (isNewlyPublished && devotional) {
+      // Don't await - send emails in background
+      notifyDevotionalSubscribers(
+        devotional.id,
+        devotional.title,
+        devotional.author,
+        devotional.summary
+      ).catch(error => {
+        console.error('Error sending devotional notifications:', error)
+        // Don't fail the request if email sending fails
+      })
     }
 
     return NextResponse.json({

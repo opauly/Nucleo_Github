@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyEventSubscribers } from '@/lib/email/notify-subscribers'
 
 // GET - Fetch single event
 export async function GET(
@@ -106,6 +107,17 @@ export async function PUT(
       )
     }
 
+    // Get current event to check if it was already published
+    const { data: currentEvent } = await supabase
+      .from('events')
+      .select('status')
+      .eq('id', id)
+      .single()
+
+    const wasAlreadyPublished = currentEvent?.status === 'published'
+
+    const isNewlyPublished = status === 'published' && !wasAlreadyPublished
+
     const { data: event, error } = await supabase
       .from('events')
       .update({
@@ -168,6 +180,20 @@ export async function PUT(
           // Don't fail the entire request, just log the error
         }
       }
+    }
+
+    // Send email notifications if newly published
+    if (isNewlyPublished && event) {
+      // Don't await - send emails in background
+      notifyEventSubscribers(
+        event.id,
+        event.title,
+        event.start_date,
+        event.location
+      ).catch(error => {
+        console.error('Error sending event notifications:', error)
+        // Don't fail the request if email sending fails
+      })
     }
 
     return NextResponse.json({

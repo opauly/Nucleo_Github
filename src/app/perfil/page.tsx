@@ -11,8 +11,10 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import { ProfilePictureUpload } from '@/components/ui/profile-picture-upload'
 import { UserTeams } from '@/components/profile/user-teams'
 import { UserEvents } from '@/components/profile/user-events'
-import { AlertCircle, CheckCircle, User, Mail, Phone, MapPin, Calendar } from 'lucide-react'
+import { AlertCircle, CheckCircle, User, Mail, Phone, MapPin, Calendar, Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Checkbox } from '@/components/ui/checkbox'
+import { toast } from 'sonner'
 
 interface Profile {
   id: string
@@ -27,6 +29,9 @@ interface Profile {
   distrito: string
   profile_picture_url: string | null
   role: string
+  email_subscribe_announcements?: boolean
+  email_subscribe_events?: boolean
+  email_subscribe_devotionals?: boolean
   created_at: string
   updated_at: string
 }
@@ -50,6 +55,14 @@ export default function PerfilPage() {
     canton: '',
     distrito: ''
   })
+  
+  const [emailPreferences, setEmailPreferences] = useState({
+    email_subscribe_announcements: true,
+    email_subscribe_events: true,
+    email_subscribe_devotionals: true
+  })
+  
+  const [isUpdatingPreferences, setIsUpdatingPreferences] = useState(false)
   
   const [profilePicture, setProfilePicture] = useState<{ file: File; tempUrl: string } | null>(null)
 
@@ -99,6 +112,11 @@ export default function PerfilPage() {
         canton: data.canton || '',
         distrito: data.distrito || ''
       })
+      setEmailPreferences({
+        email_subscribe_announcements: data.email_subscribe_announcements ?? true,
+        email_subscribe_events: data.email_subscribe_events ?? true,
+        email_subscribe_devotionals: data.email_subscribe_devotionals ?? true
+      })
     } catch (error: any) {
       console.error('Error fetching profile:', error)
       setStatus('error')
@@ -122,6 +140,48 @@ export default function PerfilPage() {
       setProfilePicture({ file, tempUrl })
     } else {
       setProfilePicture(null)
+    }
+  }
+
+  const handleEmailPreferenceChange = async (preference: 'announcements' | 'events' | 'devotionals', checked: boolean) => {
+    if (!user) return
+    
+    setIsUpdatingPreferences(true)
+    const newPreferences = {
+      ...emailPreferences,
+      [`email_subscribe_${preference}`]: checked
+    }
+    setEmailPreferences(newPreferences)
+
+    try {
+      const response = await fetch('/api/user/email-preferences', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email_subscribe_announcements: newPreferences.email_subscribe_announcements,
+          email_subscribe_events: newPreferences.email_subscribe_events,
+          email_subscribe_devotionals: newPreferences.email_subscribe_devotionals
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success(checked ? 'Suscripción activada' : 'Suscripción desactivada')
+        fetchProfile() // Refresh to get updated data
+      } else {
+        // Revert on error
+        setEmailPreferences(emailPreferences)
+        toast.error(result.error || 'Error al actualizar preferencias')
+      }
+    } catch (error) {
+      // Revert on error
+      setEmailPreferences(emailPreferences)
+      toast.error('Error de conexión')
+    } finally {
+      setIsUpdatingPreferences(false)
     }
   }
 
@@ -424,6 +484,71 @@ export default function PerfilPage() {
                       <Button variant="outline" className="w-full border-slate-300 text-slate-700 hover:bg-slate-50">
                         Cambiar Contraseña
                       </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Email Notifications */}
+                <Card className="shadow-lg mt-6">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-slate-900 flex items-center gap-2">
+                      <Bell className="w-5 h-5" />
+                      Notificaciones por Email
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-slate-600 mb-4">
+                      Recibe alertas cuando se publiquen nuevos contenidos
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors gap-4">
+                        <div className="flex-1 min-w-0">
+                          <label htmlFor="subscribe-announcements" className="text-sm font-medium text-slate-900 cursor-pointer">
+                            Anuncios
+                          </label>
+                          <p className="text-xs text-slate-500">Recibe notificaciones de nuevos anuncios</p>
+                        </div>
+                        <Checkbox
+                          id="subscribe-announcements"
+                          checked={emailPreferences.email_subscribe_announcements}
+                          onCheckedChange={(checked) => handleEmailPreferenceChange('announcements', checked as boolean)}
+                          disabled={isUpdatingPreferences}
+                          className="flex-shrink-0"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors gap-4">
+                        <div className="flex-1 min-w-0">
+                          <label htmlFor="subscribe-events" className="text-sm font-medium text-slate-900 cursor-pointer">
+                            Eventos
+                          </label>
+                          <p className="text-xs text-slate-500">Recibe notificaciones de nuevos eventos</p>
+                        </div>
+                        <Checkbox
+                          id="subscribe-events"
+                          checked={emailPreferences.email_subscribe_events}
+                          onCheckedChange={(checked) => handleEmailPreferenceChange('events', checked as boolean)}
+                          disabled={isUpdatingPreferences}
+                          className="flex-shrink-0"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors gap-4">
+                        <div className="flex-1 min-w-0">
+                          <label htmlFor="subscribe-devotionals" className="text-sm font-medium text-slate-900 cursor-pointer">
+                            Devocionales
+                          </label>
+                          <p className="text-xs text-slate-500">Recibe notificaciones de nuevos devocionales</p>
+                        </div>
+                        <Checkbox
+                          id="subscribe-devotionals"
+                          checked={emailPreferences.email_subscribe_devotionals}
+                          onCheckedChange={(checked) => handleEmailPreferenceChange('devotionals', checked as boolean)}
+                          disabled={isUpdatingPreferences}
+                          className="flex-shrink-0"
+                        />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

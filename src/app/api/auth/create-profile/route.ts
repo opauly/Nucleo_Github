@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
           canton: profileData.canton || 'San José',
           distrito: profileData.distrito || 'Carmen',
           profile_picture_url: profileData.profile_picture_url || null,
-          role: 'Miembro'
+          role: 'Miembro',
+          email_subscribe_announcements: profileData.email_subscribe_announcements ?? true,
+          email_subscribe_events: profileData.email_subscribe_events ?? true,
+          email_subscribe_devotionals: profileData.email_subscribe_devotionals ?? true
         }
       ])
       .select()

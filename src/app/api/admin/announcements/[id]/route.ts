@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyAnnouncementSubscribers } from '@/lib/email/notify-subscribers'
 
 // GET - Fetch single announcement
 export async function GET(
@@ -87,8 +88,18 @@ export async function PUT(
       )
     }
 
+    // Get current announcement to check if it was already published
+    const { data: currentAnnouncement } = await supabase
+      .from('announcements')
+      .select('published_at')
+      .eq('id', id)
+      .single()
+
+    const wasAlreadyPublished = currentAnnouncement?.published_at !== null
+
     // Convert status to published_at
     const publishedAt = status === 'published' ? new Date().toISOString() : null
+    const isNewlyPublished = status === 'published' && !wasAlreadyPublished
 
     const { data: announcement, error } = await supabase
       .from('announcements')
@@ -111,6 +122,19 @@ export async function PUT(
         { error: 'Error updating announcement' },
         { status: 500 }
       )
+    }
+
+    // Send email notifications if newly published
+    if (isNewlyPublished && announcement) {
+      // Don't await - send emails in background
+      notifyAnnouncementSubscribers(
+        announcement.id,
+        announcement.title,
+        announcement.summary
+      ).catch(error => {
+        console.error('Error sending announcement notifications:', error)
+        // Don't fail the request if email sending fails
+      })
     }
 
     return NextResponse.json({

@@ -284,4 +284,191 @@ export class EmailService {
 
     return this.sendEmail({ to: userEmail, subject, html })
   }
+
+  static async sendAnnouncementNotification(
+    userEmail: string,
+    userName: string,
+    announcementTitle: string,
+    announcementSummary: string,
+    announcementUrl: string
+  ) {
+    const subject = `Nuevo Anuncio: ${announcementTitle}`
+    const currentYear = new Date().getFullYear()
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Nuevo Anuncio</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px; }
+          .announcement-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+          .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 14px; }
+          .button { display: inline-block; background: #3b82f6; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; font-weight: 500; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📢 Nuevo Anuncio</h1>
+            <p>Hay un nuevo anuncio disponible</p>
+          </div>
+          
+          <div class="content">
+            <h2>Hola ${userName},</h2>
+            <p>Te informamos que se ha publicado un nuevo anuncio en Núcleo:</p>
+            
+            <div class="announcement-details">
+              <h3>${announcementTitle}</h3>
+              <p>${announcementSummary}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${announcementUrl}" class="button" style="color: #ffffff !important;">Leer Anuncio Completo</a>
+            </div>
+            
+            <p>¡Gracias por ser parte de Núcleo!</p>
+            
+            <div class="footer">
+              <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
+              <p>© ${currentYear} Núcleo. Todos los derechos reservados.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+
+    return this.sendEmail({ to: userEmail, subject, html })
+  }
+
+  static async sendEventNotification(
+    userEmail: string,
+    userName: string,
+    eventTitle: string,
+    eventDate: string,
+    eventLocation: string,
+    eventUrl: string
+  ) {
+    const subject = `Nuevo Evento: ${eventTitle}`
+    const currentYear = new Date().getFullYear()
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Nuevo Evento</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px; }
+          .event-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669; }
+          .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 14px; }
+          .button { display: inline-block; background: #059669; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; font-weight: 500; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📅 Nuevo Evento</h1>
+            <p>Hay un nuevo evento disponible</p>
+          </div>
+          
+          <div class="content">
+            <h2>Hola ${userName},</h2>
+            <p>Te informamos que se ha publicado un nuevo evento en Núcleo:</p>
+            
+            <div class="event-details">
+              <h3>${eventTitle}</h3>
+              <p><strong>Fecha:</strong> ${eventDate}</p>
+              <p><strong>Ubicación:</strong> ${eventLocation}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${eventUrl}" class="button" style="color: #ffffff !important;">Ver Detalles del Evento</a>
+            </div>
+            
+            <p>¡Esperamos verte allí!</p>
+            
+            <div class="footer">
+              <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
+              <p>© ${currentYear} Núcleo. Todos los derechos reservados.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+
+    return this.sendEmail({ to: userEmail, subject, html })
+  }
+
+  static async sendDevotionalNotification(
+    userEmail: string,
+    userName: string,
+    devotionalTitle: string,
+    devotionalAuthor: string,
+    devotionalSummary: string,
+    devotionalUrl: string
+  ) {
+    const subject = `Nuevo Devocional: ${devotionalTitle}`
+    const currentYear = new Date().getFullYear()
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Nuevo Devocional</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px; }
+          .devotional-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #7c3aed; }
+          .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 14px; }
+          .button { display: inline-block; background: #7c3aed; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; font-weight: 500; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📖 Nuevo Devocional</h1>
+            <p>Hay un nuevo devocional disponible</p>
+          </div>
+          
+          <div class="content">
+            <h2>Hola ${userName},</h2>
+            <p>Te informamos que se ha publicado un nuevo devocional en Núcleo:</p>
+            
+            <div class="devotional-details">
+              <h3>${devotionalTitle}</h3>
+              <p><strong>Autor:</strong> ${devotionalAuthor}</p>
+              <p>${devotionalSummary}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${devotionalUrl}" class="button" style="color: #ffffff !important;">Leer Devocional Completo</a>
+            </div>
+            
+            <p>¡Que este devocional bendiga tu día!</p>
+            
+            <div class="footer">
+              <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
+              <p>© ${currentYear} Núcleo. Todos los derechos reservados.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+
+    return this.sendEmail({ to: userEmail, subject, html })
+  }
 }
