@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useReCaptcha } from '@/components/ui/recaptcha'
 
 export default function IniciarSesionPage() {
   const [formData, setFormData] = useState({
@@ -22,6 +23,8 @@ export default function IniciarSesionPage() {
 
   const supabase = createClient()
   const router = useRouter()
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+  const { getToken } = useReCaptcha(recaptchaSiteKey)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -48,6 +51,35 @@ export default function IniciarSesionPage() {
     setMessage('')
 
     try {
+      // Verify reCAPTCHA
+      if (recaptchaSiteKey) {
+        const recaptchaToken = await getToken('login')
+        if (!recaptchaToken) {
+          setStatus('error')
+          setMessage('Error de verificación de seguridad. Por favor intenta nuevamente.')
+          setIsSubmitting(false)
+          return
+        }
+
+        // Verify token with backend
+        const verifyResponse = await fetch('/api/auth/verify-recaptcha', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: recaptchaToken }),
+        })
+
+        const verifyResult = await verifyResponse.json()
+
+        if (!verifyResponse.ok || !verifyResult.success) {
+          setStatus('error')
+          setMessage('Verificación de seguridad fallida. Por favor intenta nuevamente.')
+          setIsSubmitting(false)
+          return
+        }
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password

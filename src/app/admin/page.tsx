@@ -97,7 +97,7 @@ export default function AdminDashboard() {
       // User is not logged in, redirect to login
       router.push('/iniciar-sesion')
     }
-  }, [user, loading, router])
+  }, [user, loading])
 
   const checkUserRole = async () => {
     if (!user) return
@@ -370,9 +370,8 @@ export default function AdminDashboard() {
     )
   }
 
-  // Check if user is logged in
+  // Check if user is logged in (redirect handled in useEffect)
   if (!loading && !user) {
-    router.push('/iniciar-sesion')
     return null
   }
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Map } from "@/components/ui/map";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { calculateNextOccurrence, type RecurrenceConfig } from "@/lib/utils/recurrence";
@@ -100,6 +100,29 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [eventsExpanded, setEventsExpanded] = useState(false);
   const [announcementsExpanded, setAnnouncementsExpanded] = useState(false);
+  const autoSlideIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const teamsRef = useRef(fallbackTeams);
+
+  // Update teams ref whenever teams state changes
+  useEffect(() => {
+    teamsRef.current = teams.length > 0 ? teams : fallbackTeams;
+  }, [teams]);
+
+  // Function to start/restart the auto-slide timer
+  const startAutoSlide = () => {
+    // Clear existing interval if any
+    if (autoSlideIntervalRef.current) {
+      clearInterval(autoSlideIntervalRef.current);
+    }
+
+    // Start new interval
+    autoSlideIntervalRef.current = setInterval(() => {
+      setCurrentTeamIndex((prevIndex) => {
+        const currentTeams = teamsRef.current;
+        return (prevIndex + 1) % currentTeams.length;
+      });
+    }, 10000);
+  };
 
   useEffect(() => {
     console.log("🔍 Home component mounted");
@@ -237,24 +260,41 @@ export default function Home() {
 
     fetchData();
 
-    // Auto-scroll carousel every 10 seconds
-    const interval = setInterval(() => {
-      setCurrentTeamIndex((prevIndex) => (prevIndex + 1) % (teams.length || fallbackTeams.length));
-    }, 10000);
+    // Start auto-scroll carousel
+    startAutoSlide();
 
-    return () => clearInterval(interval);
+    return () => {
+      if (autoSlideIntervalRef.current) {
+        clearInterval(autoSlideIntervalRef.current);
+      }
+    };
   }, []); // Remove teams.length dependency to prevent re-renders
+
+  // Update auto-slide when teams change
+  useEffect(() => {
+    if (teams.length > 0) {
+      startAutoSlide();
+    }
+    return () => {
+      if (autoSlideIntervalRef.current) {
+        clearInterval(autoSlideIntervalRef.current);
+      }
+    };
+  }, [teams.length]);
 
   const goToTeam = (index: number) => {
     setCurrentTeamIndex(index);
+    startAutoSlide(); // Restart timer when manually selecting a team
   };
 
   const goToNext = () => {
     setCurrentTeamIndex((prevIndex) => (prevIndex + 1) % teams.length);
+    startAutoSlide(); // Restart timer when manually navigating
   };
 
   const goToPrevious = () => {
     setCurrentTeamIndex((prevIndex) => (prevIndex - 1 + teams.length) % teams.length);
+    startAutoSlide(); // Restart timer when manually navigating
   };
   return (
     <div className="min-h-screen bg-white pt-16 lg:pt-20">
@@ -352,73 +392,29 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Featured Team - Carousel */}
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
-              {/* Hero Section - Featured Team */}
-              <div className="h-48 relative bg-slate-800">
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/80">
-                                      <img
-                      src={teams[currentTeamIndex].image || teamImageMap[teams[currentTeamIndex].name] || '/img/musicos.jpg?v=1'}
-                      alt={teams[currentTeamIndex].alt || teams[currentTeamIndex].name}
-                      className="w-full h-full object-cover opacity-40"
-                      onError={(e) => {
-                        // Fallback to a default image if the team image fails to load
-                        e.currentTarget.src = '/img/musicos.jpg?v=1';
-                      }}
-                    />
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-white">
-                    <h3 className="text-2xl md:text-3xl font-display font-bold mb-1 drop-shadow-lg">
-                      {teams[currentTeamIndex].name}
-                    </h3>
-                    <p className="text-base md:text-lg text-slate-200 font-light drop-shadow-md">
-                      {teams[currentTeamIndex].subtitle || 'Ministerio'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Content Section */}
-              <div className="p-4 md:p-6">
-                <div className="max-w-lg mx-auto text-center">
-                  <p className="text-sm md:text-base text-slate-600 mb-4 leading-relaxed">
-                    {teams[currentTeamIndex].description || 'Ministerio dedicado a servir a nuestra comunidad y crecer juntos en la fe.'}
-                  </p>
-                  
-                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                    <Link href={`/equipos/${teams[currentTeamIndex].id}`}>
-                      <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-sm font-medium">
-                        Conocer Más
-                      </Button>
-                    </Link>
-                    <Link href={`/equipos/${teams[currentTeamIndex].id}`}>
-                      <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 text-sm font-medium">
-                        Unirse al Equipo
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Teams Grid - Show all teams */}
-          <div className="grid md:grid-cols-3 gap-4 mt-8 max-w-4xl mx-auto">
-            {teams.map((team, index) => (
-              <div 
-                key={team.id}
-                className={`bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer ${
-                  index === currentTeamIndex ? 'ring-2 ring-slate-900' : ''
-                }`}
-                onClick={() => goToTeam(index)}
+          {/* 2-Column Layout: Main Card + Teams Grid */}
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto items-center">
+            {/* Left Column - Featured Team Card */}
+            <div className="relative">
+              {/* Previous Button - Left Side */}
+              <button
+                onClick={goToPrevious}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6 z-10 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:bg-slate-50"
+                aria-label="Equipo anterior"
               >
-                <div className="h-32 relative bg-slate-800">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {/* Main Card */}
+              <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+                {/* Hero Section - Featured Team */}
+                <div className="h-48 relative bg-slate-800">
                   <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/80">
                     <img
-                      src={team.image || teamImageMap[team.name] || '/img/musicos.jpg?v=1'}
-                      alt={team.alt || team.name}
+                      src={teams[currentTeamIndex].image || teamImageMap[teams[currentTeamIndex].name] || '/img/musicos.jpg?v=1'}
+                      alt={teams[currentTeamIndex].alt || teams[currentTeamIndex].name}
                       className="w-full h-full object-cover opacity-40"
                       onError={(e) => {
                         // Fallback to a default image if the team image fails to load
@@ -428,54 +424,94 @@ export default function Home() {
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center text-white">
-                      <h4 className="text-base font-semibold drop-shadow-md">{team.name}</h4>
-                      <p className="text-xs text-slate-200 drop-shadow-sm">{team.subtitle || 'Ministerio'}</p>
+                      <h3 className="text-2xl md:text-3xl font-display font-bold mb-1 drop-shadow-lg">
+                        {teams[currentTeamIndex].name}
+                      </h3>
+                      <p className="text-base md:text-lg text-slate-200 font-light drop-shadow-md">
+                        {teams[currentTeamIndex].subtitle || 'Ministerio'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Content Section */}
+                <div className="p-4 md:p-6">
+                  <div className="text-center">
+                    <p className="text-sm md:text-base text-slate-600 mb-4 leading-relaxed">
+                      {teams[currentTeamIndex].description || 'Ministerio dedicado a servir a nuestra comunidad y crecer juntos en la fe.'}
+                    </p>
+                    
+                    <div className="flex justify-center">
+                      <Link href={`/equipos/${teams[currentTeamIndex].id}`}>
+                        <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-sm font-medium">
+                          Conocer Más
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Carousel Navigation */}
-          <div className="flex justify-center items-center mt-6 space-x-3">
-            {/* Previous Button */}
-            <button
-              onClick={goToPrevious}
-              className="w-10 h-10 bg-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:bg-slate-50"
-              aria-label="Equipo anterior"
-            >
-              <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+              {/* Next Button - Right Side */}
+              <button
+                onClick={goToNext}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6 z-10 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:bg-slate-50"
+                aria-label="Siguiente equipo"
+              >
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
 
-            {/* Team Navigation Dots */}
-            <div className="flex space-x-2">
-              {teams.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToTeam(index)}
-                  className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
-                    index === currentTeamIndex 
-                      ? 'bg-slate-900 scale-125' 
-                      : 'bg-slate-300 hover:bg-slate-400'
-                  }`}
-                  aria-label={`Ir al equipo ${index + 1}`}
-                />
-              ))}
+              {/* Team Navigation Dots - Below Main Card */}
+              <div className="flex justify-center items-center mt-4 space-x-2">
+                {teams.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToTeam(index)}
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                      index === currentTeamIndex 
+                        ? 'bg-slate-900 scale-125' 
+                        : 'bg-slate-300 hover:bg-slate-400'
+                    }`}
+                    aria-label={`Ir al equipo ${index + 1}`}
+                  />
+                ))}
+              </div>
             </div>
 
-            {/* Next Button */}
-            <button
-              onClick={goToNext}
-              className="w-10 h-10 bg-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:bg-slate-50"
-              aria-label="Siguiente equipo"
-            >
-              <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+            {/* Right Column - Teams Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {teams.map((team, index) => (
+                <div 
+                  key={team.id}
+                  className={`bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer ${
+                    index === currentTeamIndex ? 'ring-2 ring-slate-900' : ''
+                  }`}
+                  onClick={() => goToTeam(index)}
+                >
+                  <div className="h-32 relative bg-slate-800">
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/80">
+                      <img
+                        src={team.image || teamImageMap[team.name] || '/img/musicos.jpg?v=1'}
+                        alt={team.alt || team.name}
+                        className="w-full h-full object-cover opacity-40"
+                        onError={(e) => {
+                          // Fallback to a default image if the team image fails to load
+                          e.currentTarget.src = '/img/musicos.jpg?v=1';
+                        }}
+                      />
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center text-white">
+                        <h4 className="text-base font-semibold drop-shadow-md">{team.name}</h4>
+                        <p className="text-xs text-slate-200 drop-shadow-sm">{team.subtitle || 'Ministerio'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

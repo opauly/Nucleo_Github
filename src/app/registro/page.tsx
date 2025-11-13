@@ -11,6 +11,7 @@ import { ProfilePictureUpload } from '@/components/ui/profile-picture-upload'
 import { AlertCircle, CheckCircle, Eye, EyeOff, Bell } from 'lucide-react'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useReCaptcha } from '@/components/ui/recaptcha'
 
 export default function RegistroPage() {
   const [formData, setFormData] = useState({
@@ -44,6 +45,8 @@ export default function RegistroPage() {
   const [message, setMessage] = useState('')
 
   const supabase = createClient()
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+  const { getToken } = useReCaptcha(recaptchaSiteKey)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -110,7 +113,36 @@ export default function RegistroPage() {
     setMessage('')
 
     try {
-      // 1. Create auth user
+      // 1. Verify reCAPTCHA
+      if (recaptchaSiteKey) {
+        const recaptchaToken = await getToken('register')
+        if (!recaptchaToken) {
+          setStatus('error')
+          setMessage('Error de verificación de seguridad. Por favor intenta nuevamente.')
+          setIsSubmitting(false)
+          return
+        }
+
+        // Verify token with backend
+        const verifyResponse = await fetch('/api/auth/verify-recaptcha', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: recaptchaToken }),
+        })
+
+        const verifyResult = await verifyResponse.json()
+
+        if (!verifyResponse.ok || !verifyResult.success) {
+          setStatus('error')
+          setMessage('Verificación de seguridad fallida. Por favor intenta nuevamente.')
+          setIsSubmitting(false)
+          return
+        }
+      }
+
+      // 2. Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -128,7 +160,7 @@ export default function RegistroPage() {
       }
 
       if (authData.user) {
-        // 2. Upload profile picture if provided
+        // 3. Upload profile picture if provided
         let profilePictureUrl = null
         if (profilePicture?.file) {
           const formDataUpload = new FormData()
@@ -146,7 +178,7 @@ export default function RegistroPage() {
           }
         }
 
-        // 3. Create profile using API route (bypasses RLS)
+        // 4. Create profile using API route (bypasses RLS)
         const profileResponse = await fetch('/api/auth/create-profile', {
           method: 'POST',
           headers: {

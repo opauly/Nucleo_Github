@@ -471,4 +471,76 @@ export class EmailService {
 
     return this.sendEmail({ to: userEmail, subject, html })
   }
+
+  static async sendPasswordResetEmail(
+    userEmail: string,
+    userName: string,
+    resetUrl: string
+  ) {
+    const subject = 'Restablecer tu Contraseña - Núcleo'
+    const currentYear = new Date().getFullYear()
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Restablecer Contraseña</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px; }
+          .reset-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+          .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 14px; }
+          .button { display: inline-block; background: #3b82f6; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 500; }
+          .security-note { background: #fef3c7; border: 1px solid #fbbf24; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; color: #92400e; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔐 Restablecer Contraseña</h1>
+            <p>Hola ${userName}, recibimos una solicitud para restablecer tu contraseña</p>
+          </div>
+          
+          <div class="content">
+            <h2>Hola ${userName},</h2>
+            <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en Núcleo.</p>
+            
+            <div class="reset-info">
+              <p>Si solicitaste este cambio, haz clic en el botón de abajo para restablecer tu contraseña:</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" class="button" style="color: #ffffff !important;">Restablecer Mi Contraseña</a>
+            </div>
+            
+            <p>O copia y pega este enlace en tu navegador:</p>
+            <p style="word-break: break-all; color: #3b82f6; font-size: 14px;">${resetUrl}</p>
+            
+            <div class="security-note">
+              <strong>⚠️ Importante:</strong> Este enlace expirará en 1 hora por seguridad. Si no solicitaste este cambio, puedes ignorar este email y tu contraseña permanecerá sin cambios.
+            </div>
+            
+            <p>Si tienes problemas con el botón, copia y pega el enlace completo en tu navegador.</p>
+            
+            <p>¡Bendiciones!<br>El equipo de Núcleo</p>
+            
+            <div class="footer">
+              <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
+              <p>Si necesitas ayuda, contáctanos a través de nuestro sitio web.</p>
+              <p>© ${currentYear} Núcleo. Todos los derechos reservados.</p>
+              <p style="margin-top: 10px; font-size: 12px;">
+                Hacemos vida juntos en comunidad.
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+
+    return this.sendEmail({ to: userEmail, subject, html })
+  }
 }

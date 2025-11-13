@@ -68,12 +68,15 @@ src/
    cp .env.local.example .env.local
    ```
    
-   Editar `.env.local` con tus credenciales de Supabase:
+   Editar `.env.local` con tus credenciales de Supabase y reCAPTCHA:
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   SITE_URL=http://localhost:3000
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
+   RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key
+   RESEND_API_KEY=your_resend_api_key
    ```
 
 4. **Ejecutar en desarrollo**
@@ -153,8 +156,21 @@ npm run type-check   # Verificación de tipos
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-SITE_URL=
+NEXT_PUBLIC_SITE_URL=
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=
+RECAPTCHA_SECRET_KEY=
+RESEND_API_KEY=
 ```
+
+### Configuración de reCAPTCHA v3
+
+1. Registra tu sitio en [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin)
+2. Selecciona reCAPTCHA v3
+3. Agrega tu dominio
+4. Copia la **Site Key** y agrégalo a `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
+5. Copia la **Secret Key** y agrégalo a `RECAPTCHA_SECRET_KEY`
+
+**Nota**: reCAPTCHA v3 funciona en segundo plano sin interrumpir a los usuarios. Si las claves no están configuradas, los formularios seguirán funcionando (útil para desarrollo).
 
 ## 📝 Contribución
 
