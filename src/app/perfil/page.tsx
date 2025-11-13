@@ -306,14 +306,14 @@ export default function PerfilPage() {
               <div className="lg:col-span-2">
                 <Card className="shadow-lg">
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-2xl text-slate-900">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <CardTitle className="text-xl sm:text-2xl text-slate-900">
                         Información Personal
                       </CardTitle>
                       <Button
                         variant="outline"
                         onClick={() => setIsEditing(!isEditing)}
-                        className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                        className="border-slate-300 text-slate-700 hover:bg-slate-50 w-full sm:w-auto"
                       >
                         {isEditing ? 'Cancelar' : 'Editar'}
                       </Button>
@@ -383,8 +383,8 @@ export default function PerfilPage() {
                         Email
                       </label>
                       <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                        <Mail className="w-4 h-4 text-slate-500" />
-                        <span className="text-slate-700">{user.email}</span>
+                        <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                        <span className="text-slate-700 break-all">{user.email}</span>
                       </div>
                     </div>
 
@@ -431,11 +431,11 @@ export default function PerfilPage() {
 
                     {/* Save Button */}
                     {isEditing && (
-                      <div className="flex gap-4">
+                      <div className="flex flex-col sm:flex-row gap-4">
                         <Button
                           onClick={handleSave}
                           disabled={isSaving}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
                         >
                           {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                         </Button>
@@ -443,7 +443,7 @@ export default function PerfilPage() {
                           variant="outline"
                           onClick={() => setIsEditing(false)}
                           disabled={isSaving}
-                          className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                          className="border-slate-300 text-slate-700 hover:bg-slate-50 w-full sm:w-auto"
                         >
                           Cancelar
                         </Button>
@@ -457,7 +457,7 @@ export default function PerfilPage() {
               <div>
                 <Card className="shadow-lg">
                   <CardHeader>
-                    <CardTitle className="text-xl text-slate-900">
+                    <CardTitle className="text-lg sm:text-xl text-slate-900">
                       Información de Cuenta
                     </CardTitle>
                   </CardHeader>
@@ -491,8 +491,8 @@ export default function PerfilPage() {
                 {/* Email Notifications */}
                 <Card className="shadow-lg mt-6">
                   <CardHeader>
-                    <CardTitle className="text-xl text-slate-900 flex items-center gap-2">
-                      <Bell className="w-5 h-5" />
+                    <CardTitle className="text-lg sm:text-xl text-slate-900 flex items-center gap-2">
+                      <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                       Notificaciones por Email
                     </CardTitle>
                   </CardHeader>

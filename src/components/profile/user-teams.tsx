@@ -191,16 +191,16 @@ export function UserTeams() {
             <div className="space-y-4">
               {teams.map((membership) => (
                 <div key={membership.team_id} className="p-4 border rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-semibold text-slate-900">{membership.teams.name}</h3>
                         {membership.team_leader && (
-                          <Crown className="w-4 h-4 text-yellow-600" />
+                          <Crown className="w-4 h-4 text-yellow-600 flex-shrink-0" />
                         )}
                       </div>
                       <p className="text-sm text-slate-600 mb-3">{membership.teams.description}</p>
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         {getStatusBadge(membership.status)}
                         {membership.status === 'approved' && getRoleBadge(membership.role, membership.team_leader)}
                       </div>
@@ -208,11 +208,12 @@ export function UserTeams() {
                         Unido: {new Date(membership.joined_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         asChild
+                        className="w-full sm:w-auto"
                       >
                         <a href={`/equipos/${membership.team_id}`}>
                           <ExternalLink className="w-4 h-4 mr-2" />
@@ -228,7 +229,7 @@ export function UserTeams() {
                             teamId: membership.team_id,
                             teamName: membership.teams.name
                           })}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
+                          className="text-red-600 border-red-300 hover:bg-red-50 w-full sm:w-auto whitespace-nowrap"
                         >
                           <UserX className="w-4 h-4 mr-2" />
                           Solicitar Remoción

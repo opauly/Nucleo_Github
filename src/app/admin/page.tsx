@@ -400,17 +400,19 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 pt-24 pb-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Shield className="w-8 h-8 text-blue-600" />
-          <h1 className="text-3xl font-bold text-slate-900">Panel de Administración</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
+          <div className="flex items-center gap-3">
+            <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Panel de Administración</h1>
+          </div>
           {userRole.super_admin && (
-            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 w-fit">
               <Crown className="w-3 h-3 mr-1" />
               Super Admin
             </Badge>
           )}
         </div>
-        <p className="text-slate-600">
+        <p className="text-sm sm:text-base text-slate-600">
           Bienvenido, {userRole.super_admin ? 'Super Administrador' : 'Administrador'}
         </p>
       </div>
@@ -593,37 +595,39 @@ export default function AdminDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Usuarios
-          </TabsTrigger>
-          <TabsTrigger value="teams" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Equipos
-          </TabsTrigger>
-          <TabsTrigger value="events" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Eventos
-          </TabsTrigger>
-          <TabsTrigger value="attendance" className="flex items-center gap-2">
-            <UserPlus className="w-4 h-4" />
-            Asistencia
-          </TabsTrigger>
-          <TabsTrigger value="content" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Publicaciones
-          </TabsTrigger>
-          <TabsTrigger value="approvals" className="flex items-center gap-2">
-            <UserCheck className="w-4 h-4" />
-            Aprobaciones
-            {stats.pendingApprovals > 0 && (
-              <Badge className="ml-1 bg-yellow-500 text-white text-xs">
-                {stats.pendingApprovals}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-full min-w-max sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 h-auto sm:h-10 p-1">
+            <TabsTrigger value="users" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+              Usuarios
+            </TabsTrigger>
+            <TabsTrigger value="teams" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+              Equipos
+            </TabsTrigger>
+            <TabsTrigger value="events" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+              Eventos
+            </TabsTrigger>
+            <TabsTrigger value="attendance" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
+              Asistencia
+            </TabsTrigger>
+            <TabsTrigger value="content" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+              Publicaciones
+            </TabsTrigger>
+            <TabsTrigger value="approvals" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <UserCheck className="w-3 h-3 sm:w-4 sm:h-4" />
+              Aprobaciones
+              {stats.pendingApprovals > 0 && (
+                <Badge className="ml-1 bg-yellow-500 text-white text-xs">
+                  {stats.pendingApprovals}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="users" className="space-y-6">
           <UserManagement />

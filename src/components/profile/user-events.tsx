@@ -257,7 +257,7 @@ export function UserEvents() {
             </CardTitle>
           </div>
           {events.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant={filter === 'all' ? 'default' : 'outline'}
                 size="sm"
@@ -309,7 +309,7 @@ export function UserEvents() {
             <div className="space-y-4">
               {filteredEvents.map((registration) => (
                 <div key={registration.event_id} className="p-4 border rounded-lg">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-2 mb-2 flex-wrap">
                         <h3 className="font-semibold text-slate-900 flex-shrink-0">{registration.events.title}</h3>
@@ -322,8 +322,8 @@ export function UserEvents() {
                       </p>
                       <div className="space-y-1 mb-3">
                         <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Clock className="w-4 h-4" />
-                          <span>
+                          <Clock className="w-4 h-4 flex-shrink-0" />
+                          <span className="break-words">
                             {formatDate(getEventDisplayDate(registration.events).toISOString())}
                             {!registration.events.is_recurring && registration.events.end_date && registration.events.end_date !== registration.events.start_date && (
                               <span> - {formatDate(registration.events.end_date)}</span>
@@ -332,8 +332,8 @@ export function UserEvents() {
                         </div>
                         {registration.events.location && (
                           <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <MapPin className="w-4 h-4" />
-                            <span>{registration.events.location}</span>
+                            <MapPin className="w-4 h-4 flex-shrink-0" />
+                            <span className="break-words">{registration.events.location}</span>
                           </div>
                         )}
                       </div>
@@ -344,12 +344,12 @@ export function UserEvents() {
                         Registrado: {new Date(registration.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         asChild
-                        className="whitespace-nowrap"
+                        className="whitespace-nowrap w-full sm:w-auto"
                       >
                         <a href={`/eventos/${registration.event_id}`}>
                           <ExternalLink className="w-4 h-4 mr-2" />
@@ -365,7 +365,7 @@ export function UserEvents() {
                             eventId: registration.event_id,
                             eventTitle: registration.events.title
                           })}
-                          className="text-red-600 border-red-300 hover:bg-red-50 whitespace-nowrap"
+                          className="text-red-600 border-red-300 hover:bg-red-50 whitespace-nowrap w-full sm:w-auto"
                         >
                           <UserX className="w-4 h-4 mr-2" />
                           Cancelar

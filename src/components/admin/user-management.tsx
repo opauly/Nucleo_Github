@@ -216,14 +216,14 @@ export function UserManagement() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Users className="w-5 h-5" />
               Gestión de Usuarios ({users.length})
             </CardTitle>
             <Button
               onClick={() => setIsAddMemberModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
               Agregar Miembro
@@ -232,30 +232,32 @@ export function UserManagement() {
         </CardHeader>
       <CardContent className="space-y-4">
         {users.map((userItem) => (
-          <div key={userItem.id} className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center gap-3">
+          <div key={userItem.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               {getRoleIcon(userItem.role, userItem.super_admin)}
-              <div>
-                <p className="font-medium">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">
                   {userItem.nombre} {userItem.apellido1}
                   {userItem.apellido2 && ` ${userItem.apellido2}`}
                 </p>
-                <p className="text-sm text-slate-600">{userItem.email}</p>
+                <p className="text-sm text-slate-600 truncate">{userItem.email}</p>
                 <p className="text-xs text-slate-500">
                   Miembro desde {formatDate(userItem.created_at)}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              {getRoleBadge(userItem.role, userItem.super_admin)}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-shrink-0">
+              <div className="flex-shrink-0">
+                {getRoleBadge(userItem.role, userItem.super_admin)}
+              </div>
               
               <Select
                 value={userItem.super_admin ? 'Super Admin' : userItem.role}
                 onValueChange={(value) => updateUserRole(userItem.id, value)}
                 disabled={updatingUser === userItem.id}
               >
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
