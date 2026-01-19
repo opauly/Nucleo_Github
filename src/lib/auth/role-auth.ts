@@ -14,6 +14,8 @@ export interface TeamRole {
 export async function isAdmin(userId: string): Promise<boolean> {
   try {
     const supabase = createClient()
+    if (!supabase) return false
+    
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('role, super_admin')
@@ -33,6 +35,8 @@ export async function isAdmin(userId: string): Promise<boolean> {
 export async function isSuperAdmin(userId: string): Promise<boolean> {
   try {
     const supabase = createClient()
+    if (!supabase) return false
+    
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('super_admin')
@@ -52,6 +56,8 @@ export async function isSuperAdmin(userId: string): Promise<boolean> {
 export async function isTeamLeader(userId: string, teamId: string): Promise<boolean> {
   try {
     const supabase = createClient()
+    if (!supabase) return false
+    
     const { data: membership, error } = await supabase
       .from('team_members')
       .select('team_leader, role')
@@ -81,6 +87,8 @@ export async function canManageTeam(userId: string, teamId: string): Promise<boo
 export async function getUserRole(userId: string): Promise<UserRole | null> {
   try {
     const supabase = createClient()
+    if (!supabase) return null
+    
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('role, super_admin')
@@ -103,6 +111,8 @@ export async function getUserRole(userId: string): Promise<UserRole | null> {
 export async function getUserTeamRole(userId: string, teamId: string): Promise<TeamRole | null> {
   try {
     const supabase = createClient()
+    if (!supabase) return null
+    
     const { data: membership, error } = await supabase
       .from('team_members')
       .select('role, team_leader')
@@ -127,6 +137,8 @@ export async function getUserTeamRole(userId: string, teamId: string): Promise<T
 export async function isStaffOrAbove(userId: string): Promise<boolean> {
   try {
     const supabase = createClient()
+    if (!supabase) return false
+    
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('role, super_admin')
