@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { EmailService } from '@/lib/email/email-service'
+import { calculateNextOccurrence, type RecurrenceConfig } from '@/lib/utils/recurrence'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,16 +61,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Check if event is in the future (use end_date if it exists, otherwise use start_date)
+    // 3. Check if event is in the future (recurrence-aware)
     const now = new Date()
-    const startDate = new Date(event.start_date)
-    const endDate = event.end_date ? new Date(event.end_date) : null
-    
-    // An event is in the future if:
-    // - It has an end_date and it's in the future, OR
-    // - The start_date is in the future
-    const isEventInFuture = (endDate && endDate > now) || startDate > now
-    
+    const isEventInFuture = (() => {
+      if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
+        const recurrenceConfig: RecurrenceConfig = {
+          is_recurring: event.is_recurring,
+          recurrence_type: event.recurrence_type,
+          recurrence_pattern: event.recurrence_pattern,
+          recurrence_days: event.recurrence_days || [],
+          recurrence_dates: event.recurrence_dates || [],
+          recurrence_start_date: event.recurrence_start_date || event.start_date,
+          recurrence_end_date: event.recurrence_end_date,
+          start_date: event.start_date
+        }
+        const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
+        return nextOccurrence !== null && nextOccurrence > now
+      }
+
+      const startDate = new Date(event.start_date)
+      const endDate = event.end_date ? new Date(event.end_date) : null
+      return (endDate && endDate > now) || startDate > now
+    })()
+
     if (!isEventInFuture) {
       return NextResponse.json(
         { error: 'Cannot register for past events' },

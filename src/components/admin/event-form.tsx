@@ -70,6 +70,7 @@ export function EventForm({ event, onSave, onCancel }: EventFormProps) {
   )
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>(event?.recurrence_days || [])
   const [recurrenceDates, setRecurrenceDates] = useState<number[]>(event?.recurrence_dates || [])
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([])
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(
     event?.recurrence_end_date ? event.recurrence_end_date.slice(0, 16) : ''
   )
@@ -159,6 +160,74 @@ export function EventForm({ event, onSave, onCancel }: EventFormProps) {
         : [...prev, date].sort((a, b) => a - b)
     )
   }
+
+  const getReferenceYear = () => {
+    const reference = startDate ? new Date(startDate) : new Date()
+    return Number.isNaN(reference.getTime()) ? new Date().getFullYear() : reference.getFullYear()
+  }
+
+  const getDaysInMonth = (monthIndex: number, year: number) => {
+    return new Date(year, monthIndex + 1, 0).getDate()
+  }
+
+  const dayOfYearFromMonthDay = (monthIndex: number, day: number, year: number) => {
+    const date = new Date(year, monthIndex, day)
+    const startOfYear = new Date(year, 0, 0)
+    const diff = date.getTime() - startOfYear.getTime()
+    return Math.floor(diff / (1000 * 60 * 60 * 24))
+  }
+
+  const monthDayFromDayOfYear = (dayOfYear: number, year: number) => {
+    const date = new Date(year, 0, 1)
+    date.setDate(dayOfYear)
+    return { month: date.getMonth(), day: date.getDate() }
+  }
+
+  const handleRecurrenceMonthToggle = (monthIndex: number) => {
+    setSelectedMonths(prev => {
+      const isSelected = prev.includes(monthIndex)
+      if (isSelected) {
+        const year = getReferenceYear()
+        setRecurrenceDates(prevDates =>
+          prevDates.filter((dayOfYear) => monthDayFromDayOfYear(dayOfYear, year).month !== monthIndex)
+        )
+        return prev.filter(m => m !== monthIndex)
+      }
+      return [...prev, monthIndex].sort((a, b) => a - b)
+    })
+  }
+
+  const handleAnnualDateToggle = (monthIndex: number, day: number) => {
+    const year = getReferenceYear()
+    const dayOfYear = dayOfYearFromMonthDay(monthIndex, day, year)
+    setRecurrenceDates(prev =>
+      prev.includes(dayOfYear)
+        ? prev.filter(d => d !== dayOfYear)
+        : [...prev, dayOfYear].sort((a, b) => a - b)
+    )
+    setSelectedMonths(prev =>
+      prev.includes(monthIndex) ? prev : [...prev, monthIndex].sort((a, b) => a - b)
+    )
+  }
+
+  const isAnnualDateSelected = (monthIndex: number, day: number) => {
+    const year = getReferenceYear()
+    const dayOfYear = dayOfYearFromMonthDay(monthIndex, day, year)
+    return recurrenceDates.includes(dayOfYear)
+  }
+
+  useEffect(() => {
+    if (recurrenceType === 'annually' && recurrencePattern === 'dates') {
+      const year = getReferenceYear()
+      const months = recurrenceDates
+        .map((dayOfYear) => monthDayFromDayOfYear(dayOfYear, year).month)
+        .filter((value, index, self) => self.indexOf(value) === index)
+        .sort((a, b) => a - b)
+      setSelectedMonths(months)
+    } else {
+      setSelectedMonths([])
+    }
+  }, [recurrenceDates, recurrencePattern, recurrenceType, startDate])
 
   const handleSave = async () => {
     if (!user) {
@@ -457,6 +526,7 @@ export function EventForm({ event, onSave, onCancel }: EventFormProps) {
                     setRecurrencePattern('')
                     setRecurrenceDays([])
                     setRecurrenceDates([])
+                    setSelectedMonths([])
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona la frecuencia" />
@@ -484,6 +554,7 @@ export function EventForm({ event, onSave, onCancel }: EventFormProps) {
                           onChange={() => {
                             setRecurrencePattern('days')
                             setRecurrenceDates([])
+                            setSelectedMonths([])
                           }}
                           className="w-4 h-4 text-blue-600"
                         />
@@ -500,6 +571,7 @@ export function EventForm({ event, onSave, onCancel }: EventFormProps) {
                           onChange={() => {
                             setRecurrencePattern('dates')
                             setRecurrenceDays([])
+                            setSelectedMonths([])
                           }}
                           className="w-4 h-4 text-blue-600"
                         />
@@ -551,30 +623,114 @@ export function EventForm({ event, onSave, onCancel }: EventFormProps) {
                     <Label>
                       Selecciona las fechas *
                       {recurrenceType === 'monthly' && ' (días del mes: 1-31)'}
-                      {recurrenceType === 'annually' && ' (días del año: 1-365)'}
+                      {recurrenceType === 'annually' && ' (meses y fechas específicas)'}
                     </Label>
-                    <div className="grid grid-cols-8 gap-2 p-4 border border-slate-200 rounded-lg bg-slate-50 max-h-48 overflow-y-auto">
-                      {Array.from(
-                        { length: recurrenceType === 'monthly' ? 31 : 365 },
-                        (_, i) => i + 1
-                      ).map((date) => (
-                        <div key={date} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id={`recurrence-date-${date}`}
-                            checked={recurrenceDates.includes(date)}
-                            onChange={() => handleRecurrenceDateToggle(date)}
-                            className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 focus:ring-2"
-                          />
-                          <Label
-                            htmlFor={`recurrence-date-${date}`}
-                            className="text-xs text-slate-700 cursor-pointer ml-1"
-                          >
-                            {date}
-                          </Label>
+                    {recurrenceType === 'annually' ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 p-4 border border-slate-200 rounded-lg bg-slate-50">
+                          {[
+                            { value: 0, label: 'Ene' },
+                            { value: 1, label: 'Feb' },
+                            { value: 2, label: 'Mar' },
+                            { value: 3, label: 'Abr' },
+                            { value: 4, label: 'May' },
+                            { value: 5, label: 'Jun' },
+                            { value: 6, label: 'Jul' },
+                            { value: 7, label: 'Ago' },
+                            { value: 8, label: 'Sep' },
+                            { value: 9, label: 'Oct' },
+                            { value: 10, label: 'Nov' },
+                            { value: 11, label: 'Dic' }
+                          ].map((month) => (
+                            <div key={month.value} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`recurrence-month-${month.value}`}
+                                checked={selectedMonths.includes(month.value)}
+                                onChange={() => handleRecurrenceMonthToggle(month.value)}
+                                className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 focus:ring-2"
+                              />
+                              <Label
+                                htmlFor={`recurrence-month-${month.value}`}
+                                className="text-sm text-slate-700 cursor-pointer"
+                              >
+                                {month.label}
+                              </Label>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                        {selectedMonths.length > 0 && (
+                          <div className="space-y-3">
+                            {selectedMonths.map((monthIndex) => {
+                              const year = getReferenceYear()
+                              const daysInMonth = getDaysInMonth(monthIndex, year)
+                              const monthLabel = [
+                                'Enero',
+                                'Febrero',
+                                'Marzo',
+                                'Abril',
+                                'Mayo',
+                                'Junio',
+                                'Julio',
+                                'Agosto',
+                                'Septiembre',
+                                'Octubre',
+                                'Noviembre',
+                                'Diciembre'
+                              ][monthIndex]
+
+                              return (
+                                <div key={monthIndex} className="space-y-2">
+                                  <p className="text-sm font-medium text-slate-700">{monthLabel}</p>
+                                  <div className="grid grid-cols-8 gap-2 p-4 border border-slate-200 rounded-lg bg-slate-50 max-h-48 overflow-y-auto">
+                                    {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => (
+                                      <div key={`${monthIndex}-${day}`} className="flex items-center">
+                                        <input
+                                          type="checkbox"
+                                          id={`recurrence-date-${monthIndex}-${day}`}
+                                          checked={isAnnualDateSelected(monthIndex, day)}
+                                          onChange={() => handleAnnualDateToggle(monthIndex, day)}
+                                          className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 focus:ring-2"
+                                        />
+                                        <Label
+                                          htmlFor={`recurrence-date-${monthIndex}-${day}`}
+                                          className="text-xs text-slate-700 cursor-pointer ml-1"
+                                        >
+                                          {day}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-8 gap-2 p-4 border border-slate-200 rounded-lg bg-slate-50 max-h-48 overflow-y-auto">
+                        {Array.from(
+                          { length: 31 },
+                          (_, i) => i + 1
+                        ).map((date) => (
+                          <div key={date} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id={`recurrence-date-${date}`}
+                              checked={recurrenceDates.includes(date)}
+                              onChange={() => handleRecurrenceDateToggle(date)}
+                              className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 focus:ring-2"
+                            />
+                            <Label
+                              htmlFor={`recurrence-date-${date}`}
+                              className="text-xs text-slate-700 cursor-pointer ml-1"
+                            >
+                              {date}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
