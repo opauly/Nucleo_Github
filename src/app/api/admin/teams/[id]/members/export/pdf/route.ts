@@ -255,10 +255,10 @@ export async function GET(
       // Create filename
       const teamName = team.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
       const filename = `miembros_${teamName}_${new Date().toISOString().split('T')[0]}.pdf`
-      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const pdfBytes = new Uint8Array(pdfBuffer)
 
       // Return PDF file
-      return new Response(pdfBlob, {
+      return new Response(pdfBytes, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="${filename}"`
