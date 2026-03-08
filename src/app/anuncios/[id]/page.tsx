@@ -180,6 +180,7 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementDet
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: AnnouncementDetailPageProps) {
+  const { id } = await params
   const supabase = await createClient()
   
   if (!supabase) {
@@ -191,7 +192,7 @@ export async function generateMetadata({ params }: AnnouncementDetailPageProps) 
   const { data: announcement } = await supabase
     .from('announcements')
     .select('title, summary')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!announcement) {

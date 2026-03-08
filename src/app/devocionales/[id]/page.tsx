@@ -173,6 +173,7 @@ export default async function DevotionalDetailPage({ params }: DevotionalDetailP
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: DevotionalDetailPageProps) {
+  const { id } = await params
   const supabase = await createClient()
   
   if (!supabase) {
@@ -184,7 +185,7 @@ export async function generateMetadata({ params }: DevotionalDetailPageProps) {
   const { data: devotional } = await supabase
     .from('devotionals')
     .select('title, summary')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!devotional) {

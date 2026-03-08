@@ -58,14 +58,19 @@ interface Team {
   team_members: TeamMember[]
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
+interface TeamDetailPageProps {
+  params: Promise<{ id: string }>
+}
+
+export async function generateMetadata({ params }: TeamDetailPageProps) {
+  const { id } = await params
   const supabase = await createClient()
   
   if (supabase) {
     const { data: team } = await supabase
       .from('teams')
       .select('name, description')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (team) {
@@ -82,7 +87,8 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   }
 }
 
-export default async function TeamDetailPage({ params }: { params: { id: string } }) {
+export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
+  const { id } = await params
   const supabase = await createClient()
   
   let team: Team | null = null
@@ -124,7 +130,7 @@ export default async function TeamDetailPage({ params }: { params: { id: string 
           )
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (fetchError) {
@@ -156,7 +162,7 @@ export default async function TeamDetailPage({ params }: { params: { id: string 
           status
         )
       `)
-      .eq('team_id', params.id)
+      .eq('team_id', id)
       .order('events(start_date)', { ascending: true })
 
     if (!eventsError && eventsData) {
