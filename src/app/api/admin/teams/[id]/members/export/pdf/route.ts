@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { isAdmin } from '@/lib/auth/role-auth'
+import { requireAdmin } from '@/lib/auth/api-auth'
 import puppeteer from 'puppeteer'
 
 export async function GET(
@@ -9,46 +8,9 @@ export async function GET(
 ) {
   const { id: teamId } = await params
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    const isSuperAdminHeader = request.headers.get('x-super-admin') === 'true'
-    
-    // Check if user is admin or super admin bypass
-    if (!isSuperAdminHeader) {
-      const adminStatus = await isAdmin(userId)
-      if (!adminStatus) {
-        return NextResponse.json(
-          { error: 'Admin access required' },
-          { status: 403 }
-        )
-      }
-    }
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabaseAdmin
 
     // Fetch team details
     const { data: team, error: teamError } = await supabase
@@ -257,7 +219,7 @@ export async function GET(
       const filename = `miembros_${teamName}_${new Date().toISOString().split('T')[0]}.pdf`
 
       // Return PDF file
-      return new NextResponse(pdfBuffer, {
+      return new Response(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="${filename}"`
@@ -283,4 +245,3 @@ export async function GET(
     )
   }
 }
-

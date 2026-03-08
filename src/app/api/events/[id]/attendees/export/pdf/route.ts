@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { isAdmin, isSuperAdmin } from '@/lib/auth/role-auth'
+import { requireUser } from '@/lib/auth/api-auth'
 import puppeteer from 'puppeteer'
 
 export async function GET(
@@ -9,40 +8,14 @@ export async function GET(
 ) {
   const { id: eventId } = await params
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const auth = await requireUser(request)
+    if (!auth.ok) return auth.response
+    const supabase = auth.supabaseAdmin
+    const userId = auth.userId
+    const isUserAdmin =
+      auth.profile?.role === 'Admin' || auth.profile?.super_admin === true
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    const isSuperAdminHeader = request.headers.get('x-super-admin') === 'true'
-
-    // Check if user is admin or super admin
-    const isUserAdmin = await isAdmin(userId)
-    const isUserSuperAdmin = await isSuperAdmin(userId)
-
-    if (!isUserAdmin && !isUserSuperAdmin && !isSuperAdminHeader) {
+    if (!isUserAdmin) {
       // Check if user is team leader for any of the event's teams
       const { data: eventTeams, error: eventTeamsError } = await supabase
         .from('event_teams')
@@ -277,7 +250,7 @@ export async function GET(
       const filename = `asistentes_${eventTitle}_${new Date().toISOString().split('T')[0]}.pdf`
 
       // Return PDF file
-      return new NextResponse(pdfBuffer, {
+      return new Response(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="${filename}"`
