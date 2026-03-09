@@ -59,7 +59,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const [userRole, setUserRole] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -90,17 +90,17 @@ export default function AdminDashboard() {
   })
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       checkUserRole()
       fetchDashboardStats()
     } else if (!loading) {
       // User is not logged in, redirect to login
       router.push('/iniciar-sesion')
     }
-  }, [user, loading])
+  }, [user, session?.access_token, loading])
 
   const checkUserRole = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     try {
       // For now, let's directly check if the user is opaulyc@gmail.com
@@ -116,7 +116,7 @@ export default function AdminDashboard() {
       // For other users, try the server-side API
       const response = await fetch('/api/admin/debug-user-role', {
         headers: {
-          'Authorization': `Bearer ${user.id}`
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
       

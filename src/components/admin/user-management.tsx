@@ -23,7 +23,7 @@ interface User {
 }
 
 export function UserManagement() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingUser, setUpdatingUser] = useState<string | null>(null)
@@ -31,14 +31,14 @@ export function UserManagement() {
   const [currentUserIsSuperAdmin, setCurrentUserIsSuperAdmin] = useState(false)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       checkCurrentUserRole()
       fetchUsers()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const checkCurrentUserRole = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
     
     // Check if current user is super admin
     if (user.email === 'opaulyc@gmail.com') {
@@ -49,8 +49,7 @@ export function UserManagement() {
     try {
       const response = await fetch('/api/admin/debug-user-role', {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': 'true'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -66,35 +65,23 @@ export function UserManagement() {
   }
 
   const fetchUsers = async () => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     try {
-      // For opaulyc@gmail.com, bypass the authorization check
-      if (user?.email === 'opaulyc@gmail.com') {
-        const response = await fetch('/api/admin/users', {
-          headers: {
-            'Authorization': `Bearer ${user?.id}`,
-            'X-Super-Admin': 'true'
-          }
-        })
-        const result = await response.json()
-
-        if (response.ok) {
-          setUsers(result.users || [])
-        } else {
-          toast.error(result.error || 'Error al cargar usuarios')
+      const response = await fetch('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
         }
+      })
+      const result = await response.json()
+
+      if (response.ok) {
+        setUsers(result.users || [])
       } else {
-        const response = await fetch('/api/admin/users', {
-          headers: {
-            'Authorization': `Bearer ${user?.id}`
-          }
-        })
-        const result = await response.json()
-
-        if (response.ok) {
-          setUsers(result.users || [])
-        } else {
-          toast.error(result.error || 'Error al cargar usuarios')
-        }
+        toast.error(result.error || 'Error al cargar usuarios')
       }
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -105,7 +92,7 @@ export function UserManagement() {
   }
 
   const updateUserRole = async (userId: string, selectedValue: string) => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     setUpdatingUser(userId)
 
@@ -124,17 +111,13 @@ export function UserManagement() {
     try {
       const headers: any = {
         'Content-Type': 'application/json',
-      }
-      
-      if (user?.email === 'opaulyc@gmail.com') {
-        headers['X-Super-Admin'] = 'true'
+        'Authorization': `Bearer ${session.access_token}`
       }
       
       const response = await fetch('/api/admin/users', {
         method: 'PUT',
         headers,
         body: JSON.stringify({
-          userId: user.id,
           targetUserId: userId,
           role,
           superAdmin
