@@ -38,7 +38,7 @@ interface TeamMembership {
 }
 
 export function UserTeams() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [teams, setTeams] = useState<TeamMembership[]>([])
   const [loading, setLoading] = useState(true)
   const [removalModal, setRemovalModal] = useState<{
@@ -54,16 +54,21 @@ export function UserTeams() {
   const [removing, setRemoving] = useState(false)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchUserTeams()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const fetchUserTeams = async () => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/user/teams', {
         headers: {
-          'Authorization': `Bearer ${user?.id}`
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -83,6 +88,11 @@ export function UserTeams() {
   }
 
   const handleRequestRemoval = async () => {
+    if (!session?.access_token) {
+      toast.error('Sesión inválida. Vuelve a iniciar sesión.')
+      return
+    }
+
     if (!removalReason.trim()) {
       toast.error('Por favor proporciona una razón para la remoción')
       return
@@ -94,7 +104,7 @@ export function UserTeams() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           team_id: removalModal.teamId,

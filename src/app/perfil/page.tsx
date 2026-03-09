@@ -37,7 +37,7 @@ interface Profile {
 }
 
 export default function PerfilPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, session, loading: authLoading } = useAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -81,11 +81,11 @@ export default function PerfilPage() {
       return
     }
 
-    // If we have a user and supabase client, fetch profile
-    if (user && supabase) {
+    // Wait for a valid session token before requests that depend on auth headers.
+    if (user && session?.access_token && supabase) {
       fetchProfile()
     }
-  }, [user, authLoading, supabase, router])
+  }, [user, session?.access_token, authLoading, supabase, router])
 
   const fetchProfile = async () => {
     if (!user || !supabase) return
@@ -95,10 +95,65 @@ export default function PerfilPage() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         throw error
+      }
+
+      if (!data) {
+        if (!session?.access_token) {
+          throw new Error('Missing session token')
+        }
+
+        const metadata = user.user_metadata || {}
+        const createResponse = await fetch('/api/auth/create-profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            user,
+            profileData: {
+              nombre: metadata.nombre || '',
+              apellido1: metadata.apellido1 || '',
+              apellido2: metadata.apellido2 || '',
+              phone: metadata.phone || '',
+              birth_date: metadata.birth_date || '',
+              provincia: metadata.provincia || 'San José',
+              canton: metadata.canton || 'San José',
+              distrito: metadata.distrito || 'Carmen',
+              profile_picture_url: metadata.profile_picture_url || null,
+              email_subscribe_announcements: true,
+              email_subscribe_events: true,
+              email_subscribe_devotionals: true
+            }
+          })
+        })
+
+        const createResult = await createResponse.json()
+        if (!createResponse.ok) {
+          throw new Error(createResult.error || 'Error creating profile')
+        }
+
+        setProfile(createResult.profile)
+        setFormData({
+          nombre: createResult.profile.nombre || '',
+          apellido1: createResult.profile.apellido1 || '',
+          apellido2: createResult.profile.apellido2 || '',
+          phone: createResult.profile.phone || '',
+          birth_date: createResult.profile.birth_date || '',
+          provincia: createResult.profile.provincia || '',
+          canton: createResult.profile.canton || '',
+          distrito: createResult.profile.distrito || ''
+        })
+        setEmailPreferences({
+          email_subscribe_announcements: createResult.profile.email_subscribe_announcements ?? true,
+          email_subscribe_events: createResult.profile.email_subscribe_events ?? true,
+          email_subscribe_devotionals: createResult.profile.email_subscribe_devotionals ?? true
+        })
+        return
       }
 
       setProfile(data)
@@ -118,7 +173,7 @@ export default function PerfilPage() {
         email_subscribe_devotionals: data.email_subscribe_devotionals ?? true
       })
     } catch (error: any) {
-      console.error('Error fetching profile:', error)
+      console.error('Error fetching profile:', error?.message || error)
       setStatus('error')
       setMessage('Error al cargar el perfil')
     } finally {
@@ -186,7 +241,7 @@ export default function PerfilPage() {
   }
 
   const handleSave = async () => {
-    if (!user || !supabase) return
+    if (!user || !supabase || !session?.access_token) return
 
     setIsSaving(true)
     setStatus('idle')
@@ -202,6 +257,9 @@ export default function PerfilPage() {
         
         const uploadResponse = await fetch('/api/admin/upload-image', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          },
           body: formDataUpload
         })
         

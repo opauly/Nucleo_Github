@@ -65,16 +65,21 @@ export function UserEvents() {
   const [removing, setRemoving] = useState(false)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchUserEvents()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const fetchUserEvents = async () => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/user/events', {
         headers: {
-          'Authorization': `Bearer ${session?.access_token}`
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -94,6 +99,11 @@ export function UserEvents() {
   }
 
   const handleRequestRemoval = async () => {
+    if (!session?.access_token) {
+      toast.error('Sesión inválida. Vuelve a iniciar sesión.')
+      return
+    }
+
     if (!removalReason.trim()) {
       toast.error('Por favor proporciona una razón para la cancelación')
       return
@@ -105,7 +115,7 @@ export function UserEvents() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           event_id: removalModal.eventId,
