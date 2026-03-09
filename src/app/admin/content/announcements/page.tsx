@@ -22,20 +22,29 @@ interface Announcement {
 }
 
 export default function AdminAnnouncementsPage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchAnnouncements()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const fetchAnnouncements = async () => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch('/api/admin/announcements')
+      const response = await fetch('/api/admin/announcements', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
       const result = await response.json()
 
       if (response.ok) {
@@ -56,9 +65,17 @@ export default function AdminAnnouncementsPage() {
       return
     }
 
+    if (!session?.access_token) {
+      toast.error('Sesión inválida. Vuelve a iniciar sesión.')
+      return
+    }
+
     try {
       const response = await fetch(`/api/admin/announcements/${announcementId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       })
 
       if (response.ok) {

@@ -15,7 +15,7 @@ import Link from 'next/link'
 import { getUserRole } from '@/lib/auth/role-auth'
 
 export default function AttendancePage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, session, loading: authLoading } = useAuth()
   const router = useRouter()
   const [userRole, setUserRole] = useState<any>(null)
   const [checkingRole, setCheckingRole] = useState(true)
@@ -35,13 +35,13 @@ export default function AttendancePage() {
   const [lastRecord, setLastRecord] = useState<any>(null)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       checkUserRole()
       fetchLastRecord()
     } else if (!authLoading) {
       router.push('/iniciar-sesion')
     }
-  }, [user, authLoading, router])
+  }, [user, session?.access_token, authLoading, router])
 
   const checkUserRole = async () => {
     if (!user) return
@@ -66,13 +66,12 @@ export default function AttendancePage() {
   }
 
   const fetchLastRecord = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     try {
       const response = await fetch('/api/admin/attendance?limit=1', {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -89,25 +88,19 @@ export default function AttendancePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     setSubmitting(true)
 
     try {
       const headers: any = {
         'Content-Type': 'application/json',
-      }
-      
-      if (user?.email === 'opaulyc@gmail.com') {
-        headers['x-super-admin'] = 'true'
+        'Authorization': `Bearer ${session.access_token}`
       }
 
       const response = await fetch('/api/admin/attendance', {
         method: 'POST',
-        headers: {
-          ...headers,
-          'Authorization': `Bearer ${user.id}`
-        },
+        headers,
         body: JSON.stringify({
           attendance_date: attendanceDate,
           adults_count: adults,
@@ -306,4 +299,3 @@ export default function AttendancePage() {
     </div>
   )
 }
-

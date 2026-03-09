@@ -56,7 +56,7 @@ interface EventRegistration {
 }
 
 export default function AdminApprovalsPage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const [teamMemberships, setTeamMemberships] = useState<TeamMembership[]>([])
   const [eventRegistrations, setEventRegistrations] = useState<EventRegistration[]>([])
@@ -64,16 +64,24 @@ export default function AdminApprovalsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchData()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const fetchData = async () => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     try {
+      const authHeaders = {
+        'Authorization': `Bearer ${session.access_token}`
+      }
       const [teamsResponse, eventsResponse] = await Promise.all([
-        fetch('/api/admin/team-memberships'),
-        fetch('/api/admin/event-registrations')
+        fetch('/api/admin/team-memberships', { headers: authHeaders }),
+        fetch('/api/admin/event-registrations', { headers: authHeaders })
       ])
 
       if (teamsResponse.ok) {
@@ -94,7 +102,7 @@ export default function AdminApprovalsPage() {
   }
 
   const handleTeamAction = async (membership: TeamMembership, action: 'approve' | 'reject') => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     const membershipKey = `${membership.team_id}-${membership.profile_id}`
     setProcessingId(membershipKey)
@@ -104,12 +112,12 @@ export default function AdminApprovalsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           teamId: membership.team_id,
           profileId: membership.profile_id,
-          action,
-          adminUserId: user.id
+          action
         })
       })
 
@@ -130,7 +138,7 @@ export default function AdminApprovalsPage() {
   }
 
   const handleEventAction = async (registration: EventRegistration, action: 'approve' | 'reject') => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     setProcessingId(registration.id)
 
@@ -139,11 +147,11 @@ export default function AdminApprovalsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           registrationId: registration.id,
-          action,
-          adminUserId: user.id
+          action
         })
       })
 

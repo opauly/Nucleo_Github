@@ -26,21 +26,30 @@ interface Event {
 }
 
 export default function AdminEventsPage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [attendeeCounts, setAttendeeCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchEvents()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const fetchEvents = async () => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch('/api/admin/events')
+      const response = await fetch('/api/admin/events', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
       const result = await response.json()
 
       if (response.ok) {
@@ -63,7 +72,7 @@ export default function AdminEventsPage() {
   }
 
   const fetchAttendeeCounts = async (eventIds: string[]) => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     const counts: Record<string, number> = {}
     
@@ -73,8 +82,7 @@ export default function AdminEventsPage() {
         try {
           const response = await fetch(`/api/events/${eventId}/attendees`, {
             headers: {
-              'Authorization': `Bearer ${user.id}`,
-              'x-super-admin': 'true'
+              'Authorization': `Bearer ${session.access_token}`
             }
           })
 
@@ -99,9 +107,17 @@ export default function AdminEventsPage() {
       return
     }
 
+    if (!session?.access_token) {
+      toast.error('Sesión inválida. Vuelve a iniciar sesión.')
+      return
+    }
+
     try {
       const response = await fetch(`/api/admin/events/${eventId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       })
 
       if (response.ok) {
