@@ -90,21 +90,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Debug: Log the teams data to see what's being returned
-    console.log('Teams fetched:', teams?.length || 0, 'teams')
-    if (teams && teams.length > 0) {
-      const musiciansTeam = teams.find(t => t.name === 'Músicos')
-      if (musiciansTeam) {
-        console.log('Músicos team members:', musiciansTeam.team_members?.length || 0, 'members')
-        if (musiciansTeam.team_members) {
-          musiciansTeam.team_members.forEach(member => {
-            const memberEmail = Array.isArray(member.profiles) ? member.profiles[0]?.email : member.profiles?.email
-            console.log('Member:', memberEmail, 'Status:', member.status)
-          })
-        }
-      }
-    }
-
     return NextResponse.json({
       success: true,
       teams: teams || []
