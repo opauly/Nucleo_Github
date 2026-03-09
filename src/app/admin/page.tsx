@@ -174,7 +174,7 @@ export default function AdminDashboard() {
       const { count: pendingTeamMemberships } = await supabase
         .from('team_members')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
+        .in('status', ['pending', 'removal_requested'])
 
       // Get pending event registrations
       const { count: pendingEventRegistrations } = await supabase

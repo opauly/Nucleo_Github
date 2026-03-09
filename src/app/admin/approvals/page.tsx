@@ -108,18 +108,31 @@ export default function AdminApprovalsPage() {
     setProcessingId(membershipKey)
 
     try {
-      const response = await fetch('/api/teams/approve-membership', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          teamId: membership.team_id,
-          profileId: membership.profile_id,
-          action
-        })
-      })
+      const isRemovalRequest = membership.status === 'removal_requested'
+      const response = isRemovalRequest && action === 'approve'
+        ? await fetch('/api/teams/remove-member', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              team_id: membership.team_id,
+              profile_id: membership.profile_id
+            })
+          })
+        : await fetch('/api/teams/approve-membership', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              teamId: membership.team_id,
+              profileId: membership.profile_id,
+              action: isRemovalRequest && action === 'reject' ? 'approve' : action
+            })
+          })
 
       const result = await response.json()
 
@@ -175,6 +188,8 @@ export default function AdminApprovalsPage() {
     switch (status) {
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>
+      case 'removal_requested':
+        return <Badge className="bg-orange-100 text-orange-800 border-orange-200"><Clock className="w-3 h-3 mr-1" />Solicitud de Remoción</Badge>
       case 'approved':
         return <Badge className="bg-green-100 text-green-800 border-green-200"><Check className="w-3 h-3 mr-1" />Aprobado</Badge>
       case 'rejected':
@@ -199,7 +214,9 @@ export default function AdminApprovalsPage() {
     return fullName.trim()
   }
 
-  const pendingTeams = teamMemberships.filter(m => m.status === 'pending')
+  const pendingTeams = teamMemberships.filter(
+    (m) => m.status === 'pending' || m.status === 'removal_requested'
+  )
   const pendingEvents = eventRegistrations.filter(r => r.status === 'pending')
 
   if (loading) {
@@ -270,7 +287,9 @@ export default function AdminApprovalsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <Users className="w-5 h-5 text-green-600" />
-                        <CardTitle className="text-xl">Solicitud de Membresía</CardTitle>
+                        <CardTitle className="text-xl">
+                          {membership.status === 'removal_requested' ? 'Solicitud de Remoción' : 'Solicitud de Membresía'}
+                        </CardTitle>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-slate-600">
                         <span><strong>Usuario:</strong> {formatUserName(membership.profiles)}</span>
@@ -298,7 +317,11 @@ export default function AdminApprovalsPage() {
                       disabled={processingId === `${membership.team_id}-${membership.profile_id}`}
                       className="bg-green-600 hover:bg-green-700 text-white"
                     >
-                      {processingId === `${membership.team_id}-${membership.profile_id}` ? 'Procesando...' : 'Aprobar'}
+                      {processingId === `${membership.team_id}-${membership.profile_id}`
+                        ? 'Procesando...'
+                        : membership.status === 'removal_requested'
+                          ? 'Aprobar Remoción'
+                          : 'Aprobar'}
                     </Button>
                     <Button
                       onClick={() => handleTeamAction(membership, 'reject')}
@@ -306,7 +329,11 @@ export default function AdminApprovalsPage() {
                       variant="outline"
                       className="border-red-300 text-red-700 hover:bg-red-50"
                     >
-                      {processingId === `${membership.team_id}-${membership.profile_id}` ? 'Procesando...' : 'Rechazar'}
+                      {processingId === `${membership.team_id}-${membership.profile_id}`
+                        ? 'Procesando...'
+                        : membership.status === 'removal_requested'
+                          ? 'Mantener en Equipo'
+                          : 'Rechazar'}
                     </Button>
                   </div>
                 </CardContent>
