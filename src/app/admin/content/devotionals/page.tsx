@@ -24,20 +24,29 @@ interface Devotional {
 }
 
 export default function AdminDevotionalsPage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const [devotionals, setDevotionals] = useState<Devotional[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchDevotionals()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const fetchDevotionals = async () => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch('/api/admin/devotionals')
+      const response = await fetch('/api/admin/devotionals', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
       const result = await response.json()
 
       if (response.ok) {
@@ -58,9 +67,17 @@ export default function AdminDevotionalsPage() {
       return
     }
 
+    if (!session?.access_token) {
+      toast.error('Sesión inválida. Vuelve a iniciar sesión.')
+      return
+    }
+
     try {
       const response = await fetch(`/api/admin/devotionals/${devotionalId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       })
 
       if (response.ok) {

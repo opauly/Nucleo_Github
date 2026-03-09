@@ -28,27 +28,26 @@ interface AttendanceStats {
 }
 
 export function AttendanceDashboard() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [stats, setStats] = useState<AttendanceStats | null>(null)
   const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState<'month' | '3months' | '6months' | 'year' | 'all'>('3months')
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchStats()
       fetchRecords()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const fetchStats = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     try {
       const response = await fetch('/api/admin/attendance/stats', {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -66,13 +65,12 @@ export function AttendanceDashboard() {
   }
 
   const fetchRecords = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     try {
       const response = await fetch('/api/admin/attendance?limit=50', {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -274,4 +272,3 @@ export function AttendanceDashboard() {
     </div>
   )
 }
-
