@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { requireSuperAdmin } from '@/lib/auth/api-auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireSuperAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Check announcements table structure
     const { data: announcementsColumns, error: announcementsError } = await supabase

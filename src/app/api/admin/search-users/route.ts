@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { isAdmin, isSuperAdmin } from '@/lib/auth/role-auth'
+import { requireAdmin } from '@/lib/auth/api-auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
-    // Check if user is admin or super admin
-    const isUserAdmin = await isAdmin(user.id)
-    const isUserSuperAdmin = await isSuperAdmin(user.id)
-    const isSuperAdminHeader = request.headers.get('X-Super-Admin') === 'true'
-
-    if (!isUserAdmin && !isUserSuperAdmin && !isSuperAdminHeader) {
-      return NextResponse.json({ error: 'Acceso denegado. Se requieren permisos de administrador.' }, { status: 403 })
-    }
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('q')

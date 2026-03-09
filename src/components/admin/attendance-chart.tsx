@@ -146,7 +146,7 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
             <YAxis />
             <Tooltip 
               contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-              formatter={(value: any, name: string) => [value, name]}
+              formatter={(value: any, name?: string) => [value, name || '']}
               labelFormatter={(label) => `Fecha: ${label}`}
             />
             <Legend />
@@ -199,4 +199,3 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
     </Card>
   )
 }
-

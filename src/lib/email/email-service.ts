@@ -29,7 +29,7 @@ export class EmailService {
 
       if (error) {
         console.error('Email sending failed:', error)
-        throw new Error(`Failed to send email: ${error.message || error.error || 'Unknown error'}`)
+        throw new Error(`Failed to send email: ${error.message || 'Unknown error'}`)
       }
 
       console.log('Email sent successfully:', data)

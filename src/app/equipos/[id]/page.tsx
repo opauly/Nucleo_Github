@@ -28,14 +28,24 @@ interface TeamMember {
   team_leader: boolean
   status: string
   joined_at: string
-  profiles: {
-    id: string
-    nombre: string
-    apellido1: string
-    apellido2: string | null
-    email: string
-    role: string
-  } | null
+  profiles:
+    | {
+        id: string
+        nombre: string
+        apellido1: string
+        apellido2: string | null
+        email: string
+        role: string
+      }
+    | {
+        id: string
+        nombre: string
+        apellido1: string
+        apellido2: string | null
+        email: string
+        role: string
+      }[]
+    | null
 }
 
 interface Team {
@@ -136,7 +146,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     if (fetchError) {
       error = fetchError.message
     } else {
-      team = data
+      team = data as Team
     }
   }
 
@@ -167,7 +177,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
 
     if (!eventsError && eventsData) {
       teamEvents = eventsData
-        .map(item => item.events)
+        .map((item: any) => Array.isArray(item.events) ? item.events[0] : item.events)
         .filter(event => event && event.status === 'published')
     }
   }
@@ -176,6 +186,8 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
   const approvedMembers = team.team_members.filter(member => 
     member.status === 'approved' && member.profiles !== null
   )
+  const normalizeProfile = (member: TeamMember) =>
+    Array.isArray(member.profiles) ? member.profiles[0] : member.profiles
   const leaders = approvedMembers.filter(member => member.team_leader)
   const regularMembers = approvedMembers.filter(member => !member.team_leader)
 
@@ -330,9 +342,9 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                                     </div>
                                     <div>
                                       <p className="font-medium text-slate-900">
-                                        {member.profiles?.nombre || 'Usuario'} {member.profiles?.apellido1 || ''} {member.profiles?.apellido2 || ''}
+                                        {normalizeProfile(member)?.nombre || 'Usuario'} {normalizeProfile(member)?.apellido1 || ''} {normalizeProfile(member)?.apellido2 || ''}
                                       </p>
-                                      <p className="text-sm text-slate-600">{member.profiles?.email || 'Email no disponible'}</p>
+                                      <p className="text-sm text-slate-600">{normalizeProfile(member)?.email || 'Email no disponible'}</p>
                                     </div>
                                   </div>
                                   <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
@@ -361,9 +373,9 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
                                     </div>
                                     <div>
                                       <p className="font-medium text-slate-900">
-                                        {member.profiles?.nombre || 'Usuario'} {member.profiles?.apellido1 || ''} {member.profiles?.apellido2 || ''}
+                                        {normalizeProfile(member)?.nombre || 'Usuario'} {normalizeProfile(member)?.apellido1 || ''} {normalizeProfile(member)?.apellido2 || ''}
                                       </p>
-                                      <p className="text-sm text-slate-600">{member.profiles?.email || 'Email no disponible'}</p>
+                                      <p className="text-sm text-slate-600">{normalizeProfile(member)?.email || 'Email no disponible'}</p>
                                     </div>
                                   </div>
                                   <Badge className="bg-blue-100 text-blue-800 border-blue-200">

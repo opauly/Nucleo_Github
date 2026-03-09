@@ -1,48 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { isSuperAdmin, isAdmin } from '@/lib/auth/role-auth'
+import { requireAdmin, requireSuperAdmin } from '@/lib/auth/api-auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    
-    // Check if user is admin or super admin bypass
-    const superAdminBypass = request.headers.get('x-super-admin') === 'true'
-    if (!superAdminBypass) {
-      const adminStatus = await isAdmin(userId)
-      if (!adminStatus) {
-        return NextResponse.json(
-          { error: 'Admin access required' },
-          { status: 403 }
-        )
-      }
-    }
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Get all users with their profiles
     const { data: users, error } = await supabase
@@ -85,42 +48,17 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const auth = await requireSuperAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
-    if (!supabaseUrl || !supabaseServiceKey) {
+    const { targetUserId, role, superAdmin } = await request.json()
+
+    if (!targetUserId || !role) {
       return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    const { userId, targetUserId, role, superAdmin } = await request.json()
-
-    if (!userId || !targetUserId || !role) {
-      return NextResponse.json(
-        { error: 'Missing required fields: userId, targetUserId, and role' },
+        { error: 'Missing required fields: targetUserId and role' },
         { status: 400 }
       )
-    }
-
-    // Check if requesting user is super admin or super admin bypass
-    const superAdminBypass = request.headers.get('x-super-admin') === 'true'
-    if (!superAdminBypass) {
-      const superAdminStatus = await isSuperAdmin(userId)
-      if (!superAdminStatus) {
-        return NextResponse.json(
-          { error: 'Super admin access required to assign roles' },
-          { status: 403 }
-        )
-      }
     }
 
     // Validate role

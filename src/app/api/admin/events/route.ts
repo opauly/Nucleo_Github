@@ -1,26 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { notifyEventSubscribers } from '@/lib/email/notify-subscribers'
+import { requireAdmin } from '@/lib/auth/api-auth'
 
 // GET - Fetch all events
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     const { data: events, error } = await supabase
       .from('events')
@@ -53,22 +40,9 @@ export async function GET() {
 // POST - Create new event
 export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     const { 
       title, 

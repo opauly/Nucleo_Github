@@ -48,7 +48,7 @@ interface EventRegistration {
 type FilterType = 'all' | 'upcoming' | 'past'
 
 export function UserEvents() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [events, setEvents] = useState<EventRegistration[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterType>('all')
@@ -74,7 +74,7 @@ export function UserEvents() {
     try {
       const response = await fetch('/api/user/events', {
         headers: {
-          'Authorization': `Bearer ${user?.id}`
+          'Authorization': `Bearer ${session?.access_token}`
         }
       })
 
@@ -105,7 +105,7 @@ export function UserEvents() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`
+          'Authorization': `Bearer ${session?.access_token}`
         },
         body: JSON.stringify({
           event_id: removalModal.eventId,
@@ -176,7 +176,13 @@ export function UserEvents() {
         start_date: event.start_date
       }
       const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
-      return nextOccurrence !== null && nextOccurrence > now
+      if (nextOccurrence !== null && nextOccurrence > now) {
+        return true
+      }
+      if (event.recurrence_end_date) {
+        return new Date(event.recurrence_end_date) > now
+      }
+      return false
     }
     
     // For non-recurring events, use end_date if it exists, otherwise use start_date
@@ -338,7 +344,7 @@ export function UserEvents() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 mb-2">
-                        {getStatusBadge(registration.status, registration.notes)}
+                        {getStatusBadge(registration.status, registration.notes ?? undefined)}
                       </div>
                       <p className="text-xs text-slate-500">
                         Registrado: {new Date(registration.created_at).toLocaleDateString()}

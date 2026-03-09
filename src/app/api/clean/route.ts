@@ -13,7 +13,7 @@ export async function POST() {
       )
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    const supabase: any = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false

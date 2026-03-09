@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { isAdmin } from '@/lib/auth/role-auth'
+import { requireAdmin } from '@/lib/auth/api-auth'
 
 export async function GET(
   request: NextRequest,
@@ -8,45 +7,9 @@ export async function GET(
 ) {
   const { id } = await params
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    
-    // Check if user is admin or super admin bypass
-    const superAdminBypass = request.headers.get('x-super-admin') === 'true'
-    if (!superAdminBypass) {
-      const adminStatus = await isAdmin(userId)
-      if (!adminStatus) {
-        return NextResponse.json(
-          { error: 'Admin access required' },
-          { status: 403 }
-        )
-      }
-    }
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Get team details
     const { data: team, error } = await supabase
@@ -81,45 +44,9 @@ export async function PUT(
 ) {
   const { id } = await params
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    
-    // Check if user is admin or super admin bypass
-    const superAdminBypass = request.headers.get('x-super-admin') === 'true'
-    if (!superAdminBypass) {
-      const adminStatus = await isAdmin(userId)
-      if (!adminStatus) {
-        return NextResponse.json(
-          { error: 'Admin access required' },
-          { status: 403 }
-        )
-      }
-    }
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     const teamData = await request.json()
 
@@ -173,45 +100,9 @@ export async function DELETE(
 ) {
   const { id } = await params
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    
-    // Check if user is admin or super admin bypass
-    const superAdminBypass = request.headers.get('x-super-admin') === 'true'
-    if (!superAdminBypass) {
-      const adminStatus = await isAdmin(userId)
-      if (!adminStatus) {
-        return NextResponse.json(
-          { error: 'Admin access required' },
-          { status: 403 }
-        )
-      }
-    }
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Delete team
     const { error } = await supabase

@@ -1,49 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { requireUser } from '@/lib/auth/api-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const { user, profileData } = await request.json()
+    const auth = await requireUser(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const { profileData } = await request.json()
 
     // Create profile using service role (bypasses RLS)
     const { data, error } = await supabase
       .from('profiles')
-      .insert([
-        {
-          id: user.id,
-          email: user.email,
-          nombre: profileData.nombre,
-          apellido1: profileData.apellido1,
-          apellido2: profileData.apellido2 || null,
-          phone: profileData.phone,
-          birth_date: profileData.birth_date || null,
-          provincia: profileData.provincia || 'San José',
-          canton: profileData.canton || 'San José',
-          distrito: profileData.distrito || 'Carmen',
-          profile_picture_url: profileData.profile_picture_url || null,
-          role: 'Miembro',
-          email_subscribe_announcements: profileData.email_subscribe_announcements ?? true,
-          email_subscribe_events: profileData.email_subscribe_events ?? true,
-          email_subscribe_devotionals: profileData.email_subscribe_devotionals ?? true
-        }
-      ])
+      .upsert(
+        [
+          {
+            id: auth.userId,
+            email: auth.userEmail,
+            nombre: profileData.nombre,
+            apellido1: profileData.apellido1,
+            apellido2: profileData.apellido2 || null,
+            phone: profileData.phone,
+            birth_date: profileData.birth_date || null,
+            provincia: profileData.provincia || 'San José',
+            canton: profileData.canton || 'San José',
+            distrito: profileData.distrito || 'Carmen',
+            profile_picture_url: profileData.profile_picture_url || null,
+            role: 'Miembro',
+            email_subscribe_announcements:
+              profileData.email_subscribe_announcements ?? true,
+            email_subscribe_events: profileData.email_subscribe_events ?? true,
+            email_subscribe_devotionals:
+              profileData.email_subscribe_devotionals ?? true
+          }
+        ],
+        { onConflict: 'id' }
+      )
       .select()
       .single()
 

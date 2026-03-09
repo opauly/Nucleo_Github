@@ -27,6 +27,12 @@ interface Event {
   recurrence_dates?: number[]
   recurrence_end_date?: string | null
   recurrence_start_date?: string
+  event_teams?: {
+    teams?: {
+      id: string
+      name: string
+    } | null
+  }[]
   created_at: string
   updated_at: string
 }
@@ -57,7 +63,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     if (fetchError) {
       error = fetchError.message
     } else {
-      event = data
+      event = data as Event
     }
   }
 
@@ -120,7 +126,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         start_date: event.start_date
       }
       const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
-      return nextOccurrence !== null && nextOccurrence > now
+      if (nextOccurrence !== null && nextOccurrence > now) {
+        return true
+      }
+      if (event.recurrence_end_date) {
+        return new Date(event.recurrence_end_date) > now
+      }
+      return false
     }
     
     // For non-recurring events, use end_date if it exists, otherwise use start_date

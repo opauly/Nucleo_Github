@@ -1,48 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { isStaffOrAbove } from '@/lib/auth/role-auth'
+import { requireStaffOrAdmin } from '@/lib/auth/api-auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    const superAdminBypass = request.headers.get('x-super-admin') === 'true'
-    
-    // Check if user is Staff or above
-    if (!superAdminBypass) {
-      const staffStatus = await isStaffOrAbove(userId)
-      if (!staffStatus) {
-        return NextResponse.json(
-          { error: 'Staff access required to view attendance stats' },
-          { status: 403 }
-        )
-      }
-    }
+    const auth = await requireStaffOrAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Get last Sunday's attendance
     const { data: lastRecord, error: lastError } = await supabase
@@ -70,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     let averageAttendance = 0
     if (recentRecords && recentRecords.length > 0) {
-      const sum = recentRecords.reduce((acc, record) => acc + (record.total_count || 0), 0)
+      const sum = recentRecords.reduce((acc: number, record: any) => acc + (record.total_count || 0), 0)
       averageAttendance = Math.round(sum / recentRecords.length)
     }
 
@@ -127,7 +90,6 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
 
 
 

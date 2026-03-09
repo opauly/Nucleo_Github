@@ -1,32 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { EmailService } from '@/lib/email/email-service'
+import { requireAdmin } from '@/lib/auth/api-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Get the request body
-    const { registrationId, action, adminUserId } = await request.json()
+    const { registrationId, action } = await request.json()
 
-    if (!registrationId || !action || !adminUserId) {
+    if (!registrationId || !action) {
       return NextResponse.json(
-        { error: 'Missing required fields: registrationId, action, and adminUserId' },
+        { error: 'Missing required fields: registrationId and action' },
         { status: 400 }
       )
     }
@@ -38,29 +25,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Check if admin user exists
-    const { data: adminProfile, error: adminError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', adminUserId)
-      .single()
-
-    if (adminError || !adminProfile) {
-      return NextResponse.json(
-        { error: 'Admin user not found' },
-        { status: 404 }
-      )
-    }
-
-    // Check if user is admin
-    const isUserAdmin = adminProfile.role === 'Admin' || adminProfile.super_admin === true
-    
-    if (!isUserAdmin) {
-      return NextResponse.json(
-        { error: 'Admin access required to approve event registrations' },
-        { status: 403 }
-      )
-    }
+    const adminUserId = auth.userId
 
     // 2. Get the registration request with user and event details
     const { data: registration, error: registrationError } = await supabase
@@ -115,8 +80,19 @@ export async function POST(request: NextRequest) {
     // 4. Send approval/rejection email (only for approve/reject, not for pending)
     if (action !== 'pending') {
       try {
-        const userName = `${registration.profiles.nombre} ${registration.profiles.apellido1}${registration.profiles.apellido2 ? ` ${registration.profiles.apellido2}` : ''}`
-        const eventDate = new Date(registration.events.start_date).toLocaleDateString('es-ES', {
+        const registrationProfile = Array.isArray((registration as any).profiles)
+          ? (registration as any).profiles[0]
+          : (registration as any).profiles
+        const registrationEvent = Array.isArray((registration as any).events)
+          ? (registration as any).events[0]
+          : (registration as any).events
+
+        if (!registrationProfile?.email || !registrationEvent?.title || !registrationEvent?.start_date) {
+          throw new Error('Missing registration profile or event data for email notification')
+        }
+
+        const userName = `${registrationProfile.nombre || ''} ${registrationProfile.apellido1 || ''}${registrationProfile.apellido2 ? ` ${registrationProfile.apellido2}` : ''}`.trim()
+        const eventDate = new Date(registrationEvent.start_date).toLocaleDateString('es-ES', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
@@ -126,11 +102,11 @@ export async function POST(request: NextRequest) {
         })
 
         await EmailService.sendEventApprovalNotification(
-          registration.profiles.email,
+          registrationProfile.email,
           userName,
-          registration.events.title,
+          registrationEvent.title,
           eventDate,
-          registration.events.location || 'Por confirmar',
+          registrationEvent.location || 'Por confirmar',
           action === 'approve'
         )
       } catch (emailError) {

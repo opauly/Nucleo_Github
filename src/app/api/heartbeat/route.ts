@@ -24,7 +24,7 @@ export async function GET() {
       )
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const supabase: any = createClient(supabaseUrl, supabaseAnonKey)
 
     // Make a lightweight query to keep the database active
     // Try multiple tables in order of likelihood to exist

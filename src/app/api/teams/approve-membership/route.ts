@@ -1,32 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { EmailService } from '@/lib/email/email-service'
+import { requireUser } from '@/lib/auth/api-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireUser(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Get the request body
-    const { teamId, profileId, action, adminUserId } = await request.json()
+    const { teamId, profileId, action } = await request.json()
 
-    if (!teamId || !profileId || !action || !adminUserId) {
+    if (!teamId || !profileId || !action) {
       return NextResponse.json(
-        { error: 'Missing required fields: teamId, profileId, action, and adminUserId' },
+        { error: 'Missing required fields: teamId, profileId, and action' },
         { status: 400 }
       )
     }
@@ -38,23 +25,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Check if admin user exists and has appropriate role
-    const { data: adminProfile, error: adminError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', adminUserId)
-      .single()
+    const adminUserId = auth.userId
+    const isUserAdmin =
+      auth.profile?.role === 'Admin' || auth.profile?.super_admin === true
 
-    if (adminError || !adminProfile) {
-      return NextResponse.json(
-        { error: 'Admin user not found' },
-        { status: 404 }
-      )
-    }
-
-    // Check if user is admin or team leader
-    const isUserAdmin = adminProfile.role === 'Admin' || adminProfile.super_admin === true
-    
     if (!isUserAdmin) {
       // Check if user is team leader for this specific team
       const { data: teamMembership, error: membershipError } = await supabase
@@ -141,12 +115,23 @@ export async function POST(request: NextRequest) {
     // 5. Send approval/rejection email (only for approve/reject, not pending)
     if (action !== 'pending') {
       try {
-        const userName = `${membership.profiles.nombre} ${membership.profiles.apellido1}${membership.profiles.apellido2 ? ` ${membership.profiles.apellido2}` : ''}`
+        const membershipProfile = Array.isArray((membership as any).profiles)
+          ? (membership as any).profiles[0]
+          : (membership as any).profiles
+        const membershipTeam = Array.isArray((membership as any).teams)
+          ? (membership as any).teams[0]
+          : (membership as any).teams
+
+        if (!membershipProfile?.email || !membershipTeam?.name) {
+          throw new Error('Missing membership profile or team data for email notification')
+        }
+
+        const userName = `${membershipProfile.nombre || ''} ${membershipProfile.apellido1 || ''}${membershipProfile.apellido2 ? ` ${membershipProfile.apellido2}` : ''}`.trim()
 
         await EmailService.sendTeamApprovalNotification(
-          membership.profiles.email,
+          membershipProfile.email,
           userName,
-          membership.teams.name,
+          membershipTeam.name,
           action === 'approve'
         )
       } catch (emailError) {

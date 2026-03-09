@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/auth/api-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Get the request body
     const { email, profileData } = await request.json()
@@ -30,41 +17,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get admin user from Authorization header
-    const authHeader = request.headers.get('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const adminUserId = authHeader.replace('Bearer ', '')
-    const isSuperAdmin = request.headers.get('X-Super-Admin') === 'true'
-
-    // Check if admin user exists and has appropriate role
-    const { data: adminProfile, error: adminError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', adminUserId)
-      .single()
-
-    if (adminError || !adminProfile) {
-      return NextResponse.json(
-        { error: 'Admin user not found' },
-        { status: 404 }
-      )
-    }
-
-    // Check if user is admin or super admin
-    const isUserAdmin = adminProfile.role === 'Admin' || adminProfile.super_admin === true || isSuperAdmin
-
-    if (!isUserAdmin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
-    }
+    const adminUserId = auth.userId
 
     // Profile picture URL is already provided in profileData if uploaded
     const profilePictureUrl = profileData.profile_picture_url || null

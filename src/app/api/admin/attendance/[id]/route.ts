@@ -1,54 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { isAdmin } from '@/lib/auth/role-auth'
+import { requireAdmin } from '@/lib/auth/api-auth'
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     const { id } = await params
     const { attendance_date, adults_count, teens_count, kids_count, babies_count, new_people_count, notes } = await request.json()
 
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    const superAdminBypass = request.headers.get('x-super-admin') === 'true'
-    
-    // Check if user is Admin or above (only admins can update)
-    if (!superAdminBypass) {
-      const adminStatus = await isAdmin(userId)
-      if (!adminStatus) {
-        return NextResponse.json(
-          { error: 'Admin access required to update attendance records' },
-          { status: 403 }
-        )
-      }
-    }
+    const userId = auth.userId
 
     // Validate counts if provided
     if (adults_count !== undefined) {
@@ -155,47 +120,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     const { id } = await params
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
-    const superAdminBypass = request.headers.get('x-super-admin') === 'true'
-    
-    // Check if user is Admin or above (only admins can delete)
-    if (!superAdminBypass) {
-      const adminStatus = await isAdmin(userId)
-      if (!adminStatus) {
-        return NextResponse.json(
-          { error: 'Admin access required to delete attendance records' },
-          { status: 403 }
-        )
-      }
-    }
 
     // Delete record
     const { error } = await supabase

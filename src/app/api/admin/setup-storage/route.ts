@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { requireSuperAdmin } from '@/lib/auth/api-auth'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Missing Supabase configuration' },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const auth = await requireSuperAdmin(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
 
     // Check if the bucket exists
     const { data: buckets, error: listError } = await supabase.storage.listBuckets()
@@ -31,7 +18,7 @@ export async function POST() {
       )
     }
 
-    const nucleoImagesBucket = buckets.find(bucket => bucket.name === 'nucleo-images')
+    const nucleoImagesBucket = buckets.find((bucket: any) => bucket.name === 'nucleo-images')
     
     if (!nucleoImagesBucket) {
       // Create the bucket
@@ -71,7 +58,6 @@ export async function POST() {
     )
   }
 }
-
 
 
 

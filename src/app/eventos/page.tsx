@@ -9,14 +9,38 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { calculateNextOccurrence, getRecurrenceDescription, type RecurrenceConfig } from '@/lib/utils/recurrence'
 
-
+interface EventItem {
+  id: string
+  title: string
+  description?: string
+  start_date: string
+  end_date?: string
+  location?: string
+  image_url?: string
+  max_participants?: number
+  status?: string
+  is_featured?: boolean
+  is_recurring?: boolean
+  recurrence_type?: 'weekly' | 'biweekly' | 'monthly' | 'annually'
+  recurrence_pattern?: 'days' | 'dates'
+  recurrence_days?: number[]
+  recurrence_dates?: number[]
+  recurrence_end_date?: string | null
+  recurrence_start_date?: string
+  event_teams?: {
+    teams?: {
+      id: string
+      name: string
+    } | null
+  }[]
+}
 
 export default function EventosPage() {
-  const [events, setEvents] = useState([])
-  const [filteredEvents, setFilteredEvents] = useState([])
+  const [events, setEvents] = useState<EventItem[]>([])
+  const [filteredEvents, setFilteredEvents] = useState<EventItem[]>([])
   const [activeFilter, setActiveFilter] = useState('upcoming') // 'upcoming' or 'past'
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -69,7 +93,7 @@ export default function EventosPage() {
       // An event is upcoming if:
       // - For recurring events: next occurrence is in the future
       // - For non-recurring: end_date (if exists) > now OR start_date > now
-      const upcomingEvents = events.filter(event => {
+      const upcomingEvents = events.filter((event) => {
         // Check if event is recurring
         if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
           const recurrenceConfig: RecurrenceConfig = {
@@ -102,7 +126,7 @@ export default function EventosPage() {
       // An event is past if:
       // - For recurring events: no more occurrences (next occurrence is null or in past)
       // - For non-recurring: end_date (if exists) <= now OR start_date <= now
-      const pastEvents = events.filter(event => {
+      const pastEvents = events.filter((event) => {
         // Check if event is recurring
         if (event.is_recurring && event.recurrence_type && event.recurrence_pattern) {
           const recurrenceConfig: RecurrenceConfig = {
@@ -154,7 +178,7 @@ export default function EventosPage() {
     })
   }
 
-  const getEventDisplayDate = (event: any) => {
+  const getEventDisplayDate = (event: EventItem) => {
     const now = new Date()
     
     // For recurring events, calculate next occurrence
@@ -177,7 +201,7 @@ export default function EventosPage() {
     return new Date(event.start_date)
   }
 
-  const isUpcoming = (event: any) => {
+  const isUpcoming = (event: EventItem) => {
     const now = new Date()
     const displayDate = getEventDisplayDate(event)
     
@@ -194,7 +218,13 @@ export default function EventosPage() {
         start_date: event.start_date
       }
       const nextOccurrence = calculateNextOccurrence(recurrenceConfig, now)
-      return nextOccurrence !== null && nextOccurrence > now
+      if (nextOccurrence !== null && nextOccurrence > now) {
+        return true
+      }
+      if (event.recurrence_end_date) {
+        return new Date(event.recurrence_end_date) > now
+      }
+      return false
     }
     
     // For non-recurring events, use end_date if it exists, otherwise use start_date
@@ -202,7 +232,7 @@ export default function EventosPage() {
     return dateToCheck > now
   }
 
-  const getEventSummary = (description: string) => {
+  const getEventSummary = (description?: string) => {
     if (!description) return 'Únete a nosotros en este evento especial de la comunidad.'
     
     // Strip HTML tags

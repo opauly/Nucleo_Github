@@ -166,9 +166,15 @@ export default function RegistroPage() {
           const formDataUpload = new FormData()
           formDataUpload.append('file', profilePicture.file)
           formDataUpload.append('folder', 'profile-pictures')
-          
+          const accessToken = authData.session?.access_token
+          const uploadHeaders: Record<string, string> = {}
+          if (accessToken) {
+            uploadHeaders.Authorization = `Bearer ${accessToken}`
+          }
+
           const uploadResponse = await fetch('/api/admin/upload-image', {
             method: 'POST',
+            headers: uploadHeaders,
             body: formDataUpload
           })
           
@@ -183,6 +189,7 @@ export default function RegistroPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authData.session?.access_token}`
           },
           body: JSON.stringify({
             user: authData.user,

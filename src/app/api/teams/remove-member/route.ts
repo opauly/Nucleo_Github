@@ -1,32 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { isAdmin, isSuperAdmin, isTeamLeader } from '@/lib/auth/role-auth'
+import { requireUser } from '@/lib/auth/api-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({ error: 'Missing Supabase configuration' }, { status: 500 })
-    }
-
-    // Use service role key to bypass RLS
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Get the requesting user's ID from the Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      console.log('No authorization header')
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
-    const userId = authHeader.replace('Bearer ', '')
+    const auth = await requireUser(request)
+    if (!auth.ok) return auth.response
+    const supabase: any = auth.supabaseAdmin
+    const userId = auth.userId
     const { team_id, profile_id } = await request.json()
     console.log('Remove member request:', { team_id, profile_id, user_id: userId })
 
@@ -34,15 +14,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'team_id y profile_id son requeridos' }, { status: 400 })
     }
 
-    // Check if user is admin, super admin, or team leader
-    const isUserAdmin = await isAdmin(userId)
-    const isUserSuperAdmin = await isSuperAdmin(userId)
-    const isUserTeamLeader = await isTeamLeader(userId, team_id)
-    const isSuperAdminHeader = request.headers.get('X-Super-Admin') === 'true'
+    const isUserAdmin =
+      auth.profile?.role === 'Admin' || auth.profile?.super_admin === true
 
-    console.log('Permission check:', { isUserAdmin, isUserSuperAdmin, isUserTeamLeader, isSuperAdminHeader })
+    let isUserTeamLeader = false
+    if (!isUserAdmin) {
+      const { data: membership, error: membershipError } = await supabase
+        .from('team_members')
+        .select('team_leader, role')
+        .eq('profile_id', userId)
+        .eq('team_id', team_id)
+        .eq('status', 'approved')
+        .single()
 
-    if (!isUserAdmin && !isUserSuperAdmin && !isUserTeamLeader && !isSuperAdminHeader) {
+      if (!membershipError && membership) {
+        isUserTeamLeader =
+          membership.team_leader === true || membership.role === 'lider'
+      }
+    }
+
+    console.log('Permission check:', { isUserAdmin, isUserTeamLeader })
+
+    if (!isUserAdmin && !isUserTeamLeader) {
       return NextResponse.json({ error: 'Acceso denegado. Se requieren permisos de administrador o líder de equipo.' }, { status: 403 })
     }
 
