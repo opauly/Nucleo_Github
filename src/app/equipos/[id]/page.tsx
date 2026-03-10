@@ -205,17 +205,17 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
             </Link>
           </div>
           
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-600">
                   <Users className="w-8 h-8 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-4xl font-bold text-slate-900 mb-2">
+                <div className="min-w-0">
+                  <h1 className="mb-2 break-words text-3xl font-bold text-slate-900 sm:text-4xl">
                     {team.name}
                   </h1>
-                  <div className="flex items-center gap-4 text-slate-600">
+                  <div className="flex flex-wrap items-start gap-x-4 gap-y-2 text-slate-600">
                     <span className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
                       {approvedMembers.length} miembros
@@ -233,7 +233,7 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
               </div>
             </div>
             
-            <div className="flex gap-3">
+            <div className="w-full sm:max-w-[220px] lg:w-auto">
               <TeamJoinButton
                 teamId={team.id}
                 teamName={team.name}

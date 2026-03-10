@@ -20,6 +20,101 @@ interface AttendanceCounterProps {
   onNewPeopleChange: (value: number) => void
 }
 
+interface CounterCardProps {
+  label: string
+  value: number
+  icon: React.ReactNode
+  color: string
+  onIncrement: () => void
+  onDecrement: () => void
+  onChange: (value: string) => void
+}
+
+function CounterCard({
+  label,
+  value,
+  icon,
+  color,
+  onIncrement,
+  onDecrement,
+  onChange
+}: CounterCardProps) {
+  const [inputValue, setInputValue] = useState(value.toString())
+  const [isEditing, setIsEditing] = useState(false)
+
+  useEffect(() => {
+    if (!isEditing) {
+      setInputValue(value.toString())
+    }
+  }, [value, isEditing])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value
+    setInputValue(newValue)
+
+    if (newValue === '') {
+      return
+    }
+
+    const numValue = parseInt(newValue)
+    if (!isNaN(numValue) && numValue >= 0) {
+      onChange(newValue)
+    }
+  }
+
+  const handleBlur = () => {
+    setIsEditing(false)
+    const numValue = parseInt(inputValue)
+    if (isNaN(numValue) || numValue < 0) {
+      setInputValue(value.toString())
+    } else {
+      onChange(inputValue)
+    }
+  }
+
+  return (
+    <Card className="border-2">
+      <CardContent className="p-4">
+        <div className="flex flex-col items-center space-y-3">
+          <div className={`${color} p-2 rounded-full`}>
+            {icon}
+          </div>
+          <Label className="text-base font-semibold">{label}</Label>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onDecrement}
+              className="h-10 w-10"
+              disabled={value === 0}
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={isEditing ? inputValue : value}
+              onChange={handleInputChange}
+              onBlur={handleBlur}
+              onFocus={() => setIsEditing(true)}
+              className="w-20 text-center text-xl font-bold"
+              min="0"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onIncrement}
+              className="h-10 w-10"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function AttendanceCounter({
   adults,
   teens,
@@ -77,105 +172,6 @@ export function AttendanceCounter({
     }
   }
 
-  const CounterCard = ({ 
-    label, 
-    value, 
-    icon, 
-    color, 
-    onIncrement, 
-    onDecrement, 
-    onChange 
-  }: {
-    label: string
-    value: number
-    icon: React.ReactNode
-    color: string
-    onIncrement: () => void
-    onDecrement: () => void
-    onChange: (value: string) => void
-  }) => {
-    const [inputValue, setInputValue] = useState(value.toString())
-    const [isEditing, setIsEditing] = useState(false)
-
-    // Sync input value when prop changes (but not while editing)
-    useEffect(() => {
-      if (!isEditing) {
-        setInputValue(value.toString())
-      }
-    }, [value, isEditing])
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value
-      setInputValue(newValue)
-      // Allow empty string for typing
-      if (newValue === '') {
-        return
-      }
-      // Only update parent if it's a valid number
-      const numValue = parseInt(newValue)
-      if (!isNaN(numValue) && numValue >= 0) {
-        onChange(newValue)
-      }
-    }
-
-    const handleBlur = () => {
-      setIsEditing(false)
-      // Ensure we have a valid number on blur
-      const numValue = parseInt(inputValue)
-      if (isNaN(numValue) || numValue < 0) {
-        setInputValue(value.toString())
-      } else {
-        onChange(inputValue)
-      }
-    }
-
-    const handleFocus = () => {
-      setIsEditing(true)
-    }
-
-    return (
-      <Card className="border-2">
-        <CardContent className="p-4">
-          <div className="flex flex-col items-center space-y-3">
-            <div className={`${color} p-2 rounded-full`}>
-              {icon}
-            </div>
-            <Label className="text-base font-semibold">{label}</Label>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onDecrement}
-                className="h-10 w-10"
-                disabled={value === 0}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <Input
-                type="text"
-                inputMode="numeric"
-                value={isEditing ? inputValue : value}
-                onChange={handleInputChange}
-                onBlur={handleBlur}
-                onFocus={handleFocus}
-                className="w-20 text-center text-xl font-bold"
-                min="0"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onIncrement}
-                className="h-10 w-10"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
       <CounterCard
@@ -226,4 +222,3 @@ export function AttendanceCounter({
     </div>
   )
 }
-

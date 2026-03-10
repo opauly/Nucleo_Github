@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -26,6 +26,15 @@ interface AttendanceChartProps {
 
 export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartProps) {
   const [dateRange, setDateRange] = useState<'month' | '3months' | '6months' | 'year' | 'all'>('3months')
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)')
+    const updateIsMobile = () => setIsMobile(mediaQuery.matches)
+    updateIsMobile()
+    mediaQuery.addEventListener('change', updateIsMobile)
+    return () => mediaQuery.removeEventListener('change', updateIsMobile)
+  }, [])
 
   const handleDateRangeChange = (value: 'month' | '3months' | '6months' | 'year' | 'all') => {
     setDateRange(value)
@@ -92,6 +101,11 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
   }
 
   const chartData = formatChartData()
+  const chartHeight = isMobile ? 320 : 400
+  const chartMargin = useMemo(
+    () => (isMobile ? { top: 70, right: 8, left: -20, bottom: 40 } : { top: 5, right: 30, left: 20, bottom: 5 }),
+    [isMobile]
+  )
 
   if (records.length === 0) {
     return (
@@ -114,13 +128,13 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
             Gráfico de Asistencia
           </CardTitle>
           <Select value={dateRange} onValueChange={(value: any) => handleDateRangeChange(value)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -134,18 +148,27 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
         </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <LineChart data={chartData} margin={chartMargin}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="date" 
-              angle={-45}
+              angle={isMobile ? -35 : -45}
               textAnchor="end"
-              height={80}
+              height={isMobile ? 60 : 80}
+              interval={isMobile ? 'preserveStartEnd' : 0}
             />
             <YAxis />
             <Tooltip 
-              contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+              position={isMobile ? { x: 8, y: 8 } : undefined}
+              wrapperStyle={{ zIndex: 10, maxWidth: isMobile ? 180 : 280 }}
+              contentStyle={{
+                backgroundColor: '#fff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: isMobile ? '12px' : '14px',
+                padding: isMobile ? '8px' : '12px'
+              }}
               formatter={(value: any, name?: string) => [value, name || '']}
               labelFormatter={(label) => `Fecha: ${label}`}
             />
