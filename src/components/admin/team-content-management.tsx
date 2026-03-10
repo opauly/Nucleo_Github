@@ -472,9 +472,27 @@ export function TeamContentManagement() {
                         <DialogHeader>
                           <DialogTitle>Lista de Miembros - {team.name}</DialogTitle>
                         </DialogHeader>
+                        <div className="mb-4 flex justify-end">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddMember(team.id, team.name)}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Agregar Miembro
+                          </Button>
+                        </div>
                         <TeamMembersExport teamId={team.id} teamName={team.name} />
                       </DialogContent>
                     </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      onClick={() => handleAddMember(team.id, team.name)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Agregar Miembro
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
