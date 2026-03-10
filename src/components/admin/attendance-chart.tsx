@@ -2,11 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { useAuth } from '@/lib/auth/auth-context'
-import { Calendar, TrendingUp } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 
 interface AttendanceRecord {
   id: string
@@ -27,6 +25,10 @@ interface AttendanceChartProps {
 export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartProps) {
   const [dateRange, setDateRange] = useState<'month' | '3months' | '6months' | 'year' | 'all'>('3months')
   const [isMobile, setIsMobile] = useState(false)
+  const [mobileTooltip, setMobileTooltip] = useState<{
+    label: string
+    values: Array<{ name: string; value: number; color?: string }>
+  } | null>(null)
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 640px)')
@@ -106,6 +108,31 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
     () => (isMobile ? { top: 70, right: 8, left: -20, bottom: 40 } : { top: 5, right: 30, left: 20, bottom: 5 }),
     [isMobile]
   )
+  const dotRadius = isMobile ? 2 : 4
+  const activeDotRadius = isMobile ? 4 : 6
+  const totalDotRadius = isMobile ? 2.5 : 5
+  const lineWidth = isMobile ? 1.5 : 2
+  const totalLineWidth = isMobile ? 2.5 : 3
+
+  const handleChartMove = (state: any) => {
+    if (!isMobile) return
+    if (!state?.activeLabel || !Array.isArray(state.activePayload)) return
+
+    const values = state.activePayload
+      .filter((item: any) => typeof item?.value === 'number')
+      .map((item: any) => ({
+        name: item.name as string,
+        value: item.value as number,
+        color: item.color as string | undefined
+      }))
+
+    if (values.length > 0) {
+      setMobileTooltip({
+        label: String(state.activeLabel),
+        values
+      })
+    }
+  }
 
   if (records.length === 0) {
     return (
@@ -148,8 +175,20 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
         </div>
       </CardHeader>
       <CardContent>
+        {isMobile && mobileTooltip && (
+          <div className="mb-3 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-sm">
+            <p className="mb-2 font-semibold text-slate-900">Fecha: {mobileTooltip.label}</p>
+            <div className="space-y-1">
+              {mobileTooltip.values.map((item) => (
+                <p key={item.name} style={{ color: item.color || '#334155' }}>
+                  {item.name}: {item.value}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <LineChart data={chartData} margin={chartMargin}>
+          <LineChart data={chartData} margin={chartMargin} onMouseMove={handleChartMove}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="date" 
@@ -159,62 +198,68 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
               interval={isMobile ? 'preserveStartEnd' : 0}
             />
             <YAxis />
-            <Tooltip 
-              position={isMobile ? { x: 8, y: 8 } : undefined}
-              wrapperStyle={{ zIndex: 10, maxWidth: isMobile ? 180 : 280 }}
-              contentStyle={{
-                backgroundColor: '#fff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: isMobile ? '12px' : '14px',
-                padding: isMobile ? '8px' : '12px'
-              }}
-              formatter={(value: any, name?: string) => [value, name || '']}
-              labelFormatter={(label) => `Fecha: ${label}`}
-            />
+            {!isMobile && (
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  padding: '12px'
+                }}
+                formatter={(value: any, name?: string) => [value, name || '']}
+                labelFormatter={(label) => `Fecha: ${label}`}
+              />
+            )}
             <Legend />
             <Line 
               type="monotone" 
               dataKey="Adultos" 
               stroke="#3b82f6" 
-              strokeWidth={2}
-              dot={{ r: 4 }}
+              strokeWidth={lineWidth}
+              dot={{ r: dotRadius }}
+              activeDot={{ r: activeDotRadius }}
             />
             <Line 
               type="monotone" 
               dataKey="Teens" 
               stroke="#10b981" 
-              strokeWidth={2}
-              dot={{ r: 4 }}
+              strokeWidth={lineWidth}
+              dot={{ r: dotRadius }}
+              activeDot={{ r: activeDotRadius }}
             />
             <Line 
               type="monotone" 
               dataKey="Niños" 
               stroke="#f97316" 
-              strokeWidth={2}
-              dot={{ r: 4 }}
+              strokeWidth={lineWidth}
+              dot={{ r: dotRadius }}
+              activeDot={{ r: activeDotRadius }}
             />
             <Line 
               type="monotone" 
               dataKey="Bebés" 
               stroke="#ec4899" 
-              strokeWidth={2}
-              dot={{ r: 4 }}
+              strokeWidth={lineWidth}
+              dot={{ r: dotRadius }}
+              activeDot={{ r: activeDotRadius }}
             />
             <Line 
               type="monotone" 
               dataKey="Personas Nuevas" 
               stroke="#a855f7" 
-              strokeWidth={2}
+              strokeWidth={lineWidth}
               strokeDasharray="5 5"
-              dot={{ r: 4 }}
+              dot={{ r: dotRadius }}
+              activeDot={{ r: activeDotRadius }}
             />
             <Line 
               type="monotone" 
               dataKey="Total" 
               stroke="#8b5cf6" 
-              strokeWidth={3}
-              dot={{ r: 5 }}
+              strokeWidth={totalLineWidth}
+              dot={{ r: totalDotRadius }}
+              activeDot={{ r: activeDotRadius }}
             />
           </LineChart>
         </ResponsiveContainer>
