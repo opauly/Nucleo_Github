@@ -114,7 +114,7 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
   const lineWidth = isMobile ? 1.5 : 2
   const totalLineWidth = isMobile ? 2.5 : 3
 
-  const handleChartMove = (state: any) => {
+  const handleChartInteraction = (state: any) => {
     if (!isMobile) return
     if (!state?.activeLabel || !Array.isArray(state.activePayload)) return
 
@@ -133,6 +133,24 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
       })
     }
   }
+
+  useEffect(() => {
+    if (!isMobile || chartData.length === 0) return
+    if (mobileTooltip) return
+
+    const latest = chartData[chartData.length - 1]
+    setMobileTooltip({
+      label: String(latest.date),
+      values: [
+        { name: 'Adultos', value: latest.Adultos, color: '#3b82f6' },
+        { name: 'Bebés', value: latest.Bebés, color: '#ec4899' },
+        { name: 'Niños', value: latest.Niños, color: '#f97316' },
+        { name: 'Personas Nuevas', value: latest['Personas Nuevas'], color: '#a855f7' },
+        { name: 'Teens', value: latest.Teens, color: '#10b981' },
+        { name: 'Total', value: latest.Total, color: '#8b5cf6' }
+      ]
+    })
+  }, [isMobile, chartData, mobileTooltip])
 
   if (records.length === 0) {
     return (
@@ -176,7 +194,7 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
       </CardHeader>
       <CardContent>
         {isMobile && mobileTooltip && (
-          <div className="mb-3 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-sm">
+          <div className="mb-3 rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-sm">
             <p className="mb-2 font-semibold text-slate-900">Fecha: {mobileTooltip.label}</p>
             <div className="space-y-1">
               {mobileTooltip.values.map((item) => (
@@ -188,7 +206,12 @@ export function AttendanceChart({ records, onDateRangeChange }: AttendanceChartP
           </div>
         )}
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <LineChart data={chartData} margin={chartMargin} onMouseMove={handleChartMove}>
+          <LineChart
+            data={chartData}
+            margin={chartMargin}
+            onMouseMove={handleChartInteraction}
+            onClick={handleChartInteraction}
+          >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="date" 
