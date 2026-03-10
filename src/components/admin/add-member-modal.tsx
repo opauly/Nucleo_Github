@@ -39,7 +39,7 @@ interface AddMemberModalProps {
 }
 
 export function AddMemberModal({ isOpen, onClose, teamId, teamName, onMemberAdded }: AddMemberModalProps) {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -49,20 +49,29 @@ export function AddMemberModal({ isOpen, onClose, teamId, teamName, onMemberAdde
   const [searching, setSearching] = useState(false)
 
   useEffect(() => {
+    if (!user || !session?.access_token) {
+      setSearchResults([])
+      return
+    }
+
     if (searchQuery.length >= 2) {
       searchUsers()
     } else {
       setSearchResults([])
     }
-  }, [searchQuery])
+  }, [searchQuery, user, session?.access_token])
 
   const searchUsers = async () => {
+    if (!session?.access_token) {
+      setSearchResults([])
+      return
+    }
+
     setSearching(true)
     try {
       const response = await fetch(`/api/admin/search-users?q=${encodeURIComponent(searchQuery)}`, {
         headers: {
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -86,6 +95,10 @@ export function AddMemberModal({ isOpen, onClose, teamId, teamName, onMemberAdde
       toast.error('Por favor selecciona un usuario')
       return
     }
+    if (!session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
 
     setLoading(true)
     try {
@@ -93,8 +106,7 @@ export function AddMemberModal({ isOpen, onClose, teamId, teamName, onMemberAdde
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           team_id: teamId,
