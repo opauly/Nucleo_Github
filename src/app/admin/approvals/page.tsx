@@ -250,19 +250,19 @@ export default function AdminApprovalsPage() {
           </Button>
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Aprobaciones Pendientes</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 break-words">Aprobaciones Pendientes</h1>
           <p className="text-slate-600">Gestiona las solicitudes de equipos y registros de eventos</p>
         </div>
       </div>
 
       {/* Content */}
       <Tabs defaultValue="teams" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="teams" className="flex items-center gap-2">
+        <TabsList className="grid h-auto w-full grid-cols-2">
+          <TabsTrigger value="teams" className="flex items-center gap-2 px-2 py-2 text-xs sm:px-3 sm:text-sm">
             <Users className="w-4 h-4" />
             Equipos ({pendingTeams.length})
           </TabsTrigger>
-          <TabsTrigger value="events" className="flex items-center gap-2">
+          <TabsTrigger value="events" className="flex items-center gap-2 px-2 py-2 text-xs sm:px-3 sm:text-sm">
             <Calendar className="w-4 h-4" />
             Eventos ({pendingEvents.length})
           </TabsTrigger>
@@ -283,22 +283,22 @@ export default function AdminApprovalsPage() {
             pendingTeams.map((membership) => (
               <Card key={`${membership.team_id}-${membership.profile_id}`}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                         <Users className="w-5 h-5 text-green-600" />
                         <CardTitle className="text-xl">
                           {membership.status === 'removal_requested' ? 'Solicitud de Remoción' : 'Solicitud de Membresía'}
                         </CardTitle>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
+                      <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-600">
                         <span><strong>Usuario:</strong> {formatUserName(membership.profiles)}</span>
                         <span><strong>Email:</strong> {membership.profiles.email}</span>
                         <span><strong>Equipo:</strong> {membership.teams.name}</span>
                         <span><strong>Solicitado:</strong> {formatDate(membership.joined_at)}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col gap-2 xl:items-end">
                       {getStatusBadge(membership.status)}
                     </div>
                   </div>
@@ -311,11 +311,11 @@ export default function AdminApprovalsPage() {
                       </p>
                     </div>
                   )}
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     <Button
                       onClick={() => handleTeamAction(membership, 'approve')}
                       disabled={processingId === `${membership.team_id}-${membership.profile_id}`}
-                      className="bg-green-600 hover:bg-green-700 text-white"
+                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
                     >
                       {processingId === `${membership.team_id}-${membership.profile_id}`
                         ? 'Procesando...'
@@ -327,7 +327,7 @@ export default function AdminApprovalsPage() {
                       onClick={() => handleTeamAction(membership, 'reject')}
                       disabled={processingId === `${membership.team_id}-${membership.profile_id}`}
                       variant="outline"
-                      className="border-red-300 text-red-700 hover:bg-red-50"
+                      className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50"
                     >
                       {processingId === `${membership.team_id}-${membership.profile_id}`
                         ? 'Procesando...'
@@ -357,13 +357,13 @@ export default function AdminApprovalsPage() {
             pendingEvents.map((registration) => (
               <Card key={registration.id}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                         <Calendar className="w-5 h-5 text-blue-600" />
                         <CardTitle className="text-xl">Inscripción a Evento</CardTitle>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
+                      <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-600">
                         <span><strong>Usuario:</strong> {formatUserName(registration.profiles)}</span>
                         <span><strong>Email:</strong> {registration.profiles.email}</span>
                         <span><strong>Evento:</strong> {registration.events.title}</span>
@@ -371,7 +371,7 @@ export default function AdminApprovalsPage() {
                         <span><strong>Registrado:</strong> {formatDate(registration.created_at)}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col gap-2 xl:items-end">
                       {getStatusBadge(registration.status)}
                     </div>
                   </div>
@@ -384,11 +384,11 @@ export default function AdminApprovalsPage() {
                       </p>
                     </div>
                   )}
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     <Button
                       onClick={() => handleEventAction(registration, 'approve')}
                       disabled={processingId === registration.id}
-                      className="bg-green-600 hover:bg-green-700 text-white"
+                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
                     >
                       {processingId === registration.id ? 'Procesando...' : 'Aprobar'}
                     </Button>
@@ -396,7 +396,7 @@ export default function AdminApprovalsPage() {
                       onClick={() => handleEventAction(registration, 'reject')}
                       disabled={processingId === registration.id}
                       variant="outline"
-                      className="border-red-300 text-red-700 hover:bg-red-50"
+                      className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50"
                     >
                       {processingId === registration.id ? 'Procesando...' : 'Rechazar'}
                     </Button>

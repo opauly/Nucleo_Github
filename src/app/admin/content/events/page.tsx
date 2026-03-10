@@ -186,12 +186,12 @@ export default function AdminEventsPage() {
             Volver al Panel Principal
           </Button>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Gestión de Eventos</h1>
             <p className="text-slate-600">Administra los eventos de la iglesia</p>
           </div>
-          <Button onClick={() => router.push('/admin/content/events/new')}>
+          <Button className="w-full sm:w-auto" onClick={() => router.push('/admin/content/events/new')}>
             <Plus className="w-4 h-4 mr-2" />
             Nuevo Evento
           </Button>
@@ -219,9 +219,9 @@ export default function AdminEventsPage() {
             {events.map((event) => (
               <Card key={event.id}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                         <Calendar className="w-5 h-5 text-purple-600" />
                         <CardTitle className="text-xl">{event.title}</CardTitle>
                         {event.is_featured && (
@@ -230,7 +230,7 @@ export default function AdminEventsPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
+                      <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-600">
                         <span>Estado: {getStatusBadge(event.status)}</span>
                         <span>Fecha: {formatDate(event.start_date)}</span>
                         {event.end_date && <span>Fin: {formatDate(event.end_date)}</span>}
@@ -241,12 +241,13 @@ export default function AdminEventsPage() {
                         <span>Creado: {formatDate(event.created_at)}</span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap xl:w-auto">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button 
                             variant="outline" 
                             size="sm"
+                            className="w-full sm:w-auto"
                           >
                             <Users className="w-4 h-4 mr-2" />
                             Asistentes ({attendeeCounts[event.id] ?? 0})
@@ -262,6 +263,7 @@ export default function AdminEventsPage() {
                       <Button 
                         variant="outline" 
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => router.push(`/admin/content/events/${event.id}`)}
                       >
                         <Edit className="w-4 h-4 mr-2" />
@@ -270,6 +272,7 @@ export default function AdminEventsPage() {
                       <Button 
                         variant="destructive" 
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => handleDelete(event.id)}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />

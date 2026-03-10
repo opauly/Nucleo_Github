@@ -20,7 +20,7 @@ interface EventRegistration {
 }
 
 export default function AdminEventosPage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const [registrations, setRegistrations] = useState<EventRegistration[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -32,12 +32,23 @@ export default function AdminEventosPage() {
       return
     }
 
-    fetchRegistrations()
-  }, [user, router])
+    if (session?.access_token) {
+      fetchRegistrations()
+    }
+  }, [user, session?.access_token, router])
 
   const fetchRegistrations = async () => {
+    if (!session?.access_token) {
+      setIsLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch('/api/admin/event-registrations')
+      const response = await fetch('/api/admin/event-registrations', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
       const result = await response.json()
 
       if (response.ok) {
@@ -54,7 +65,10 @@ export default function AdminEventosPage() {
   }
 
   const handleAction = async (registrationId: string, action: 'approve' | 'reject') => {
-    if (!user) return
+    if (!user || !session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
 
     setProcessingId(registrationId)
 
@@ -63,11 +77,11 @@ export default function AdminEventosPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           registrationId,
-          action,
-          adminUserId: user.id
+          action
         })
       })
 
@@ -162,9 +176,9 @@ export default function AdminEventosPage() {
               {registrations.map((registration) => (
                 <Card key={registration.id} className="shadow-lg">
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                             <Calendar className="w-5 h-5 text-white" />
                           </div>
@@ -175,13 +189,13 @@ export default function AdminEventosPage() {
                             <p className="text-slate-600">ID: {registration.profile_id}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                        <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-600">
                           <span><strong>Evento ID:</strong> {registration.event_id}</span>
                           <span><strong>Usuario ID:</strong> {registration.profile_id}</span>
                           <span><strong>Registrado:</strong> {formatDate(registration.created_at)}</span>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-col gap-2 xl:items-end">
                         {getStatusBadge(registration.status)}
                       </div>
                     </div>
@@ -195,11 +209,11 @@ export default function AdminEventosPage() {
                       </div>
                     )}
                     {registration.status === 'pending' && (
-                      <div className="flex gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row">
                         <Button
                           onClick={() => handleAction(registration.id, 'approve')}
                           disabled={processingId === registration.id}
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
                         >
                           {processingId === registration.id ? 'Procesando...' : 'Aprobar'}
                         </Button>
@@ -207,7 +221,7 @@ export default function AdminEventosPage() {
                           onClick={() => handleAction(registration.id, 'reject')}
                           disabled={processingId === registration.id}
                           variant="outline"
-                          className="border-red-300 text-red-700 hover:bg-red-50"
+                          className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50"
                         >
                           {processingId === registration.id ? 'Procesando...' : 'Rechazar'}
                         </Button>

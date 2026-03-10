@@ -142,12 +142,12 @@ export default function AdminAnnouncementsPage() {
             Volver al Panel Principal
           </Button>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Gestión de Anuncios</h1>
             <p className="text-slate-600">Administra los anuncios de la iglesia</p>
           </div>
-          <Button onClick={() => router.push('/admin/content/announcements/new')}>
+          <Button className="w-full sm:w-auto" onClick={() => router.push('/admin/content/announcements/new')}>
             <Plus className="w-4 h-4 mr-2" />
             Nuevo Anuncio
           </Button>
@@ -175,9 +175,9 @@ export default function AdminAnnouncementsPage() {
             {announcements.map((announcement) => (
               <Card key={announcement.id}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                         <FileText className="w-5 h-5 text-blue-600" />
                         <CardTitle className="text-xl">{announcement.title}</CardTitle>
                         {announcement.is_featured && (
@@ -186,7 +186,7 @@ export default function AdminAnnouncementsPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
+                      <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-600">
                         <span>Estado: {getStatusBadge(announcement.status)}</span>
                         <span>Creado: {formatDate(announcement.created_at)}</span>
                         {announcement.published_at && (
@@ -194,10 +194,11 @@ export default function AdminAnnouncementsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap xl:w-auto">
                       <Button 
                         variant="outline" 
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => router.push(`/admin/content/announcements/${announcement.id}`)}
                       >
                         <Edit className="w-4 h-4 mr-2" />
@@ -206,6 +207,7 @@ export default function AdminAnnouncementsPage() {
                       <Button 
                         variant="destructive" 
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => handleDelete(announcement.id)}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />

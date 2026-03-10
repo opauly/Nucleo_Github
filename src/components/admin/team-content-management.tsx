@@ -72,7 +72,7 @@ interface Team {
 }
 
 export function TeamContentManagement() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [editingTeam, setEditingTeam] = useState<Team | null>(null)
@@ -88,17 +88,21 @@ export function TeamContentManagement() {
   })
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchTeams()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   const fetchTeams = async () => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/admin/teams', {
         headers: {
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
       const result = await response.json()
@@ -123,14 +127,17 @@ export function TeamContentManagement() {
 
   const handleSave = async () => {
     if (!editingTeam) return
+    if (!session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
 
     try {
       const response = await fetch(`/api/admin/teams/${editingTeam.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(editingTeam)
       })
@@ -160,13 +167,16 @@ export function TeamContentManagement() {
     if (!confirm('¿Estás seguro de que quieres eliminar este equipo? Esta acción no se puede deshacer.')) {
       return
     }
+    if (!session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
 
     try {
       const response = await fetch(`/api/admin/teams/${teamId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -184,19 +194,22 @@ export function TeamContentManagement() {
   }
 
   const handleApproveMember = async (teamId: string, profileId: string) => {
+    if (!session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
+
     try {
       const response = await fetch('/api/teams/approve-membership', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           teamId: teamId,
           profileId: profileId,
-          action: 'approve',
-          adminUserId: user?.id
+          action: 'approve'
         })
       })
 
@@ -215,19 +228,22 @@ export function TeamContentManagement() {
   }
 
   const handleRejectMember = async (teamId: string, profileId: string) => {
+    if (!session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
+
     try {
       const response = await fetch('/api/teams/approve-membership', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           teamId: teamId,
           profileId: profileId,
-          action: 'reject',
-          adminUserId: user?.id
+          action: 'reject'
         })
       })
 
@@ -249,6 +265,10 @@ export function TeamContentManagement() {
     if (!confirm('¿Estás seguro de que quieres remover este miembro del equipo?')) {
       return
     }
+    if (!session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
 
     console.log('Removing member:', { teamId, profileId, user: user?.id, email: user?.email })
 
@@ -257,8 +277,7 @@ export function TeamContentManagement() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           team_id: teamId,
@@ -283,13 +302,17 @@ export function TeamContentManagement() {
   }
 
   const handleToggleLeader = async (teamId: string, profileId: string, isLeader: boolean) => {
+    if (!session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
+
     try {
       const response = await fetch('/api/admin/teams/update-member-role', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           team_id: teamId,
@@ -315,20 +338,22 @@ export function TeamContentManagement() {
   const handleChangeMemberStatus = async (teamId: string, profileId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'approved' ? 'rejected' : 'approved'
     const action = newStatus === 'approved' ? 'approve' : 'reject'
+    if (!session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
 
     try {
       const response = await fetch('/api/teams/approve-membership', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           teamId: teamId,
           profileId: profileId,
-          action: action,
-          adminUserId: user?.id
+          action: action
         })
       })
 
@@ -385,12 +410,12 @@ export function TeamContentManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Gestión de Contenido de Equipos</h2>
           <p className="text-slate-600">Administra la información detallada de cada equipo</p>
         </div>
-        <Button onClick={() => window.open('/equipos', '_blank')}>
+        <Button className="w-full sm:w-auto" onClick={() => window.open('/equipos', '_blank')}>
           <Eye className="w-4 h-4 mr-2" />
           Ver Página Pública
         </Button>
@@ -411,9 +436,9 @@ export function TeamContentManagement() {
           {teams.map((team) => (
             <Card key={team.id}>
               <CardHeader>
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                       <Users className="w-5 h-5 text-blue-600" />
                       <CardTitle className="text-xl">{team.name}</CardTitle>
                       {team.is_featured && (
@@ -424,19 +449,20 @@ export function TeamContentManagement() {
                       )}
                       {getStatusBadge(team.status)}
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-600">
+                    <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-600">
                       <span>Creado: {new Date(team.created_at).toLocaleDateString('es-ES')}</span>
                       {team.max_members && (
                         <span>Máximo: {team.max_members} miembros</span>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap xl:w-auto">
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button 
                           variant="outline" 
                           size="sm"
+                          className="w-full sm:w-auto"
                         >
                           <Users className="w-4 h-4 mr-2" />
                           Miembros ({team.team_members.length})
@@ -452,6 +478,7 @@ export function TeamContentManagement() {
                     <Button 
                       variant="outline" 
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => handleEdit(team)}
                     >
                       <Edit className="w-4 h-4 mr-2" />
@@ -460,6 +487,7 @@ export function TeamContentManagement() {
                     <Button 
                       variant="destructive" 
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => handleDelete(team.id)}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />

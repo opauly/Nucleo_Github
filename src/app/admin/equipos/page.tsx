@@ -21,7 +21,7 @@ interface TeamMembership {
 }
 
 export default function AdminEquiposPage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const router = useRouter()
   const [memberships, setMemberships] = useState<TeamMembership[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -33,12 +33,23 @@ export default function AdminEquiposPage() {
       return
     }
 
-    fetchMemberships()
-  }, [user, router])
+    if (session?.access_token) {
+      fetchMemberships()
+    }
+  }, [user, session?.access_token, router])
 
   const fetchMemberships = async () => {
+    if (!session?.access_token) {
+      setIsLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch('/api/admin/team-memberships')
+      const response = await fetch('/api/admin/team-memberships', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
       const result = await response.json()
 
       if (response.ok) {
@@ -54,21 +65,25 @@ export default function AdminEquiposPage() {
     }
   }
 
-  const handleAction = async (membershipId: string, action: 'approve' | 'reject') => {
-    if (!user) return
+  const handleAction = async (membership: TeamMembership, action: 'approve' | 'reject') => {
+    if (!user || !session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion.')
+      return
+    }
 
-    setProcessingId(membershipId)
+    setProcessingId(membership.id)
 
     try {
       const response = await fetch('/api/teams/approve-membership', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          membershipId,
-          action,
-          adminUserId: user.id
+          teamId: membership.team_id,
+          profileId: membership.profile_id,
+          action
         })
       })
 
@@ -163,9 +178,9 @@ export default function AdminEquiposPage() {
               {memberships.map((membership) => (
                 <Card key={membership.id} className="shadow-lg">
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                       <div className="flex-1">
-                                                 <div className="flex items-center gap-3 mb-2">
+                        <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                              <Users className="w-5 h-5 text-white" />
                            </div>
@@ -176,13 +191,13 @@ export default function AdminEquiposPage() {
                              <p className="text-slate-600">ID: {membership.profile_id}</p>
                            </div>
                          </div>
-                         <div className="flex items-center gap-4 text-sm text-slate-600">
+                        <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-600">
                            <span><strong>Equipo ID:</strong> {membership.team_id}</span>
                            <span><strong>Usuario ID:</strong> {membership.profile_id}</span>
                            <span><strong>Solicitado:</strong> {formatDate(membership.joined_at)}</span>
-                         </div>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-col gap-2 xl:items-end">
                         {getStatusBadge(membership.status)}
                       </div>
                     </div>
@@ -196,19 +211,19 @@ export default function AdminEquiposPage() {
                       </div>
                     )}
                     {membership.status === 'pending' && (
-                      <div className="flex gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row">
                         <Button
-                          onClick={() => handleAction(membership.id, 'approve')}
+                          onClick={() => handleAction(membership, 'approve')}
                           disabled={processingId === membership.id}
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
                         >
                           {processingId === membership.id ? 'Procesando...' : 'Aprobar'}
                         </Button>
                         <Button
-                          onClick={() => handleAction(membership.id, 'reject')}
+                          onClick={() => handleAction(membership, 'reject')}
                           disabled={processingId === membership.id}
                           variant="outline"
-                          className="border-red-300 text-red-700 hover:bg-red-50"
+                          className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50"
                         >
                           {processingId === membership.id ? 'Procesando...' : 'Rechazar'}
                         </Button>

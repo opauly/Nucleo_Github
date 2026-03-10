@@ -144,12 +144,12 @@ export default function AdminDevotionalsPage() {
             Volver al Panel Principal
           </Button>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Gestión de Devocionales</h1>
             <p className="text-slate-600">Administra los devocionales de la iglesia</p>
           </div>
-          <Button onClick={() => router.push('/admin/content/devotionals/new')}>
+          <Button className="w-full sm:w-auto" onClick={() => router.push('/admin/content/devotionals/new')}>
             <Plus className="w-4 h-4 mr-2" />
             Nuevo Devocional
           </Button>
@@ -177,9 +177,9 @@ export default function AdminDevotionalsPage() {
             {devotionals.map((devotional) => (
               <Card key={devotional.id}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                         <FileText className="w-5 h-5 text-purple-600" />
                         <CardTitle className="text-xl">{devotional.title}</CardTitle>
                         {devotional.is_featured && (
@@ -188,7 +188,7 @@ export default function AdminDevotionalsPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600">
+                      <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-600">
                         <span>Estado: {getStatusBadge(devotional.status)}</span>
                         {devotional.author && <span>Autor: {devotional.author}</span>}
                         {devotional.scripture_reference && (
@@ -200,10 +200,11 @@ export default function AdminDevotionalsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap xl:w-auto">
                       <Button 
                         variant="outline" 
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => router.push(`/admin/content/devotionals/${devotional.id}`)}
                       >
                         <Edit className="w-4 h-4 mr-2" />
@@ -212,6 +213,7 @@ export default function AdminDevotionalsPage() {
                       <Button 
                         variant="destructive" 
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => handleDelete(devotional.id)}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />

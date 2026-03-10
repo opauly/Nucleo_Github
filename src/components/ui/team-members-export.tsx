@@ -31,27 +31,26 @@ interface TeamMember {
 }
 
 export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       fetchMembers()
     }
-  }, [user, teamId])
+  }, [user, session?.access_token, teamId])
 
   const fetchMembers = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     setLoading(true)
     try {
       const response = await fetch(`/api/admin/teams/${teamId}/members`, {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -71,8 +70,8 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
   }
 
   const handleExportExcel = async () => {
-    if (!user) {
-      toast.error('Debes iniciar sesión para exportar')
+    if (!user || !session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion para exportar')
       return
     }
 
@@ -80,8 +79,7 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
     try {
       const response = await fetch(`/api/admin/teams/${teamId}/members/export/excel`, {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -109,8 +107,8 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
   }
 
   const handleExportPDF = async () => {
-    if (!user) {
-      toast.error('Debes iniciar sesión para exportar')
+    if (!user || !session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion para exportar')
       return
     }
 
@@ -118,8 +116,7 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
     try {
       const response = await fetch(`/api/admin/teams/${teamId}/members/export/pdf`, {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -147,8 +144,8 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
   }
 
   const handleStatusChange = async (profileId: string, action: 'approve' | 'reject' | 'pending') => {
-    if (!user) {
-      toast.error('Debes iniciar sesión para cambiar el estado')
+    if (!user || !session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion para cambiar el estado')
       return
     }
 
@@ -158,14 +155,12 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.id}`,
-          'X-Super-Admin': user?.email === 'opaulyc@gmail.com' ? 'true' : 'false'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           teamId: teamId,
           profileId: profileId,
-          action: action,
-          adminUserId: user.id
+          action: action
         })
       })
 
@@ -408,4 +403,3 @@ export function TeamMembersExport({ teamId, teamName }: TeamMembersExportProps) 
     </Card>
   )
 }
-

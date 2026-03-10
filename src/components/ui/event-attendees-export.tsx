@@ -29,7 +29,7 @@ interface Attendee {
 }
 
 export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExportProps) {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [attendees, setAttendees] = useState<Attendee[]>([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null)
@@ -38,21 +38,21 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
   const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (user) {
+    if (user && session?.access_token) {
       checkSuperAdmin()
     }
-  }, [user])
+  }, [user, session?.access_token])
 
   useEffect(() => {
-    if (user && (isSuperAdmin || hasAccess === true)) {
+    if (user && session?.access_token && (isSuperAdmin || hasAccess === true)) {
       fetchAttendees()
-    } else if (user && !isSuperAdmin) {
+    } else if (user && session?.access_token && !isSuperAdmin) {
       checkAccess()
     }
-  }, [user, eventId, isSuperAdmin, hasAccess])
+  }, [user, session?.access_token, eventId, isSuperAdmin, hasAccess])
 
   const checkSuperAdmin = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
     
     // Check if user is super admin (opaulyc@gmail.com or via API)
     if (user.email === 'opaulyc@gmail.com') {
@@ -64,8 +64,7 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
     try {
       const response = await fetch('/api/admin/debug-user-role', {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': 'true'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -82,15 +81,14 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
   }
 
   const checkAccess = async () => {
-    if (!user || isSuperAdmin) {
+    if (!user || !session?.access_token || isSuperAdmin) {
       return
     }
 
     try {
       const response = await fetch(`/api/events/${eventId}/attendees`, {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': 'true'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -108,14 +106,13 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
   }
 
   const fetchAttendees = async () => {
-    if (!user) return
+    if (!user || !session?.access_token) return
 
     setLoading(true)
     try {
       const response = await fetch(`/api/events/${eventId}/attendees`, {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': 'true'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -136,8 +133,8 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
   }
 
   const handleExportExcel = async () => {
-    if (!user) {
-      toast.error('Debes iniciar sesión para exportar')
+    if (!user || !session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion para exportar')
       return
     }
 
@@ -145,8 +142,7 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
     try {
       const response = await fetch(`/api/events/${eventId}/attendees/export/excel`, {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': 'true'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -174,8 +170,8 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
   }
 
   const handleExportPDF = async () => {
-    if (!user) {
-      toast.error('Debes iniciar sesión para exportar')
+    if (!user || !session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion para exportar')
       return
     }
 
@@ -183,8 +179,7 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
     try {
       const response = await fetch(`/api/events/${eventId}/attendees/export/pdf`, {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
-          'x-super-admin': 'true'
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
 
@@ -212,8 +207,8 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
   }
 
   const handleStatusChange = async (registrationId: string, action: 'approve' | 'reject' | 'pending') => {
-    if (!user) {
-      toast.error('Debes iniciar sesión para cambiar el estado')
+    if (!user || !session?.access_token) {
+      toast.error('Sesion invalida. Vuelve a iniciar sesion para cambiar el estado')
       return
     }
 
@@ -223,11 +218,11 @@ export function EventAttendeesExport({ eventId, eventTitle }: EventAttendeesExpo
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           registrationId,
-          action,
-          adminUserId: user.id
+          action
         })
       })
 
